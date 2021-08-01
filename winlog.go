@@ -91,10 +91,19 @@ var reSystem = regexp.MustCompile(`<System.+System>`)
 
 func checkWinlogCh(c string) int {
 	filter := fmt.Sprintf(`/q:*[System[TimeCreated[@SystemTime>'%s']]]`, lastTime.UTC().Format("2006-01-02T15:04:05"))
+	params := []string{"qe", c, filter}
+	if remote != "" {
+		params = append(params, "/r:"+remote)
+		params = append(params, "/u:"+user)
+		params = append(params, "/p:"+password)
+		if auth != "" {
+			params = append(params, "/a:"+auth)
+		}
+	}
 	ret := 0
-	out, err := exec.Command("wevtutil.exe", "qe", c, filter).Output()
+	out, err := exec.Command("wevtutil.exe", params...).Output()
 	if err != nil {
-		log.Printf("err=%v c=%s filter=%s out=%s", err, c, filter, out)
+		log.Printf("err=%v c=%s filter=%s", err, c, filter)
 		return 0
 	}
 	if len(out) < 5 {

@@ -25,6 +25,7 @@ var syslogInterval = 300
 var retentionData = 3600 * 24 * 7
 var cpuprofile string
 var memprofile string
+var debug bool
 
 func init() {
 	flag.StringVar(&syslogDst, "syslog", "", "syslog destnation list")
@@ -36,6 +37,7 @@ func init() {
 	flag.IntVar(&retentionData, "retention", 3600*24*7, "data retention time(sec)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to `file`")
 	flag.StringVar(&memprofile, "memprofile", "", "write memory profile to `file`")
+	flag.BoolVar(&debug, "debug", false, "Debug Mode")
 	flag.VisitAll(func(f *flag.Flag) {
 		if s := os.Getenv("TWWINLOG_" + strings.ToUpper(f.Name)); s != "" {
 			f.Value.Set(s)

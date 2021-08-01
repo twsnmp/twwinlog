@@ -13,7 +13,7 @@ ZIP          = zip
 
 ### ターゲットパラメータ
 DIST = dist
-SRC = ./main.go ./winlog.go ./syslog.go
+SRC = ./main.go ./winlog.go ./syslog.go ./logon.go
 TARGETS     = $(DIST)/twwinlog.exe
 ROOT  = ./...
 

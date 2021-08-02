@@ -55,7 +55,7 @@ func (e *logonEnt) String() string {
 
 var logonMap sync.Map
 
-func updateLogon(s *System, l string) {
+func updateLogon(s *System, l string, t time.Time) {
 	logonType := getLogonType(getEventData(reLogonType, l))
 	subjectUserName := getEventData(reSubjectUserName, l)
 	subjectDomainName := getEventData(reSubjectDomainName, l)
@@ -63,7 +63,6 @@ func updateLogon(s *System, l string) {
 	targetDomainName := getEventData(reTargetDomainName, l)
 	ipAddress := getEventData(reIpAddress, l)
 	failCode := getFailCode(getEventData(reSubStatus, l))
-	t := getEventTime(s.TimeCreated.SystemTime)
 	if targetDomainName == "" {
 		targetDomainName = s.Computer
 	}
@@ -73,8 +72,10 @@ func updateLogon(s *System, l string) {
 		syslogCh <- &syslogEnt{
 			Severity: 4,
 			Time:     t,
-			Msg: fmt.Sprintf("type=LogonFailed,subject=%s@%s,target=%s@%s,logonType=%s,ip=%s,code=%s",
-				subjectUserName, subjectDomainName, targetUserName, targetDomainName, logonType, ipAddress, failCode),
+			Msg: fmt.Sprintf("type=LogonFailed,subject=%s@%s,target=%s@%s,logonType=%s,ip=%s,code=%s,time=%s",
+				subjectUserName, subjectDomainName, targetUserName, targetDomainName, logonType, ipAddress, failCode,
+				t.Format(time.RFC3339),
+			),
 		}
 	}
 	if logonType == "Service" {
@@ -128,7 +129,7 @@ func incLogonEnt(e *logonEnt, eventID int) {
 		e.Logon++
 	case 4625:
 		e.Failed++
-	case 4647:
+	case 4647, 4634:
 		e.Logoff++
 	}
 }
@@ -140,16 +141,11 @@ func getEventData(re *regexp.Regexp, l string) string {
 	return ""
 }
 
-func getEventTime(s string) time.Time {
-	t, err := time.Parse(time.RFC3339Nano, s)
-	if err != nil {
-		log.Printf(" err=%v", err)
-		return time.Now()
-	}
-	return t
-}
-
 func getFailCode(c string) string {
+	c = strings.TrimSpace(c)
+	if c == "" {
+		return ""
+	}
 	c = strings.ToLower(c)
 	switch c {
 	case "0xc0000064":
@@ -179,6 +175,10 @@ func getFailCode(c string) string {
 }
 
 func getLogonType(t string) string {
+	t = strings.TrimSpace(t)
+	if t == "" {
+		return ""
+	}
 	switch t {
 	case "2":
 		return "Interactive"
@@ -193,7 +193,7 @@ func getLogonType(t string) string {
 	case "8":
 		return "IIS"
 	case "10":
-		return "RD"
+		return "Remote"
 	case "11":
 		return "Cached"
 	}

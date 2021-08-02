@@ -33,10 +33,14 @@ func startWinlog(ctx context.Context) {
 		case <-timer.C:
 			count = checkWinlog()
 			total += count
+			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f", total, count, float64(count)/float64(syslogInterval))
+			if remote != "" {
+				msg += ",remote=" + remote
+			}
 			syslogCh <- &syslogEnt{
 				Time:     time.Now(),
 				Severity: 6,
-				Msg:      fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f", total, count, float64(count)/float64(syslogInterval)),
+				Msg:      msg,
 			}
 			go sendReport()
 			log.Printf("total=%d,count=%d,logon=%d,logonFailed=%d", total, count, logonCount, logonFailed)
@@ -56,13 +60,16 @@ func sendReport() {
 	busy = true
 	st := time.Now().Add(-time.Second * time.Duration(syslogInterval)).Unix()
 	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
-	sendEventIDMapReport()
+	sendEventSummary()
 	sendLogonReport(st, rt)
 	busy = false
 }
 
 // Windows Event Log XML format
 type System struct {
+	Provider struct {
+		Name string `xml:"Name,attr"`
+	}
 	EventID       int    `xml:"EventID"`
 	Level         int    `xml:"Level"`
 	EventRecordID int64  `xml:"EventRecordID"`
@@ -109,67 +116,108 @@ func checkWinlogCh(c string) int {
 	if len(out) < 5 {
 		return 0
 	}
-	e := new(System)
+	s := new(System)
 	for _, l := range reEvent.FindAllString(string(out), -1) {
 		l := strings.TrimSpace(l)
 		if len(l) < 10 {
 			continue
 		}
 		lsys := reSystem.FindString(l)
-		err := xml.Unmarshal([]byte(lsys), e)
+		err := xml.Unmarshal([]byte(lsys), s)
 		if err != nil {
-			log.Printf("xml err=%v %v \n%s", err, e, l)
+			log.Printf("xml err=%v", err)
 			continue
 		}
-		updateEventIDMap(e)
-		switch e.EventID {
+		t := getEventTime(s.TimeCreated.SystemTime)
+		updateEventIDMap(s, t)
+		switch s.EventID {
 		case 4624, 4625, 4648, 4634, 4647:
-			updateLogon(e, l)
+			updateLogon(s, l, t)
 		}
 		ret++
 	}
 	return ret
 }
 
-type EventIDEnt struct {
-	Computer string
-	EventID  int
-	Count    int
+func getEventTime(s string) time.Time {
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		log.Printf(" err=%v", err)
+		return time.Now()
+	}
+	return t
 }
 
-func updateEventIDMap(s *System) {
-	id := fmt.Sprintf("%s:%d", s.Computer, s.EventID)
+type EventSummaryEnt struct {
+	Computer  string
+	Provider  string
+	Channel   string
+	EventID   int
+	Level     int
+	Total     int
+	Count     int
+	FirstTime int64
+	LastTime  int64
+}
+
+func (e *EventSummaryEnt) String() string {
+	return fmt.Sprintf("type=Summary,Computer=%s,Channel=%s,Provider=%s,EventID=%d,Total=%d,Count=%d,ft=%s,lt=%s",
+		e.Computer, e.Channel, e.Provider, e.EventID, e.Total, e.Count,
+		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+		time.Unix(e.LastTime, 0).Format(time.RFC3339))
+}
+
+func updateEventIDMap(s *System, t time.Time) {
+	ts := t.Unix()
+	id := fmt.Sprintf("%s:%s:%d", s.Computer, s.Provider, s.EventID)
 	if v, ok := eventIDMap.Load(id); ok {
-		if e, ok := v.(*EventIDEnt); ok {
+		if e, ok := v.(*EventSummaryEnt); ok {
 			e.Count++
+			e.Total++
+			if e.LastTime < ts {
+				e.LastTime = ts
+			}
+			if s.Level != 0 && e.Level != 0 && e.Level > s.Level {
+				e.Level = s.Level
+			}
 		}
 		return
 	}
-	eventIDMap.Store(id, &EventIDEnt{
-		EventID:  s.EventID,
-		Computer: s.Computer,
-		Count:    1,
+	eventIDMap.Store(id, &EventSummaryEnt{
+		EventID:   s.EventID,
+		Level:     s.Level,
+		Computer:  s.Computer,
+		Channel:   s.Channel,
+		Provider:  s.Provider.Name,
+		Total:     1,
+		Count:     1,
+		FirstTime: ts,
+		LastTime:  ts,
 	})
 }
 
-func sendEventIDMapReport() {
-	cMap := make(map[string]string)
+func sendEventSummary() {
 	eventIDMap.Range(func(k, v interface{}) bool {
-		if e, ok := v.(*EventIDEnt); ok {
-			if _, ok := cMap[e.Computer]; !ok {
-				cMap[e.Computer] = fmt.Sprintf("type=IDMap,com=%s,%d=%d", e.Computer, e.EventID, e.Count)
-			} else {
-				cMap[e.Computer] += fmt.Sprintf(",%d=%d", e.EventID, e.Count)
+		if e, ok := v.(*EventSummaryEnt); ok {
+			if e.Count < 1 {
+				return true
 			}
+			sv := 6
+			switch e.Level {
+			case 1:
+				sv = 2
+			case 2:
+				sv = 3
+			case 3:
+				sv = 4
+			}
+			syslogCh <- &syslogEnt{
+				Severity: sv,
+				Time:     time.Now(),
+				Msg:      e.String(),
+			}
+			e.Count = 0
 		}
-		eventIDMap.Delete(k)
 		return true
 	})
-	for _, l := range cMap {
-		syslogCh <- &syslogEnt{
-			Severity: 6,
-			Time:     time.Now(),
-			Msg:      l,
-		}
-	}
 }

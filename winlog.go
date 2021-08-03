@@ -24,6 +24,7 @@ func startWinlog(ctx context.Context) {
 	if debug {
 		lastTime = time.Now().Add(time.Hour * -24)
 	}
+	sendMonitor()
 	timer := time.NewTicker(time.Second * time.Duration(syslogInterval))
 	defer timer.Stop()
 	total := 0
@@ -62,6 +63,7 @@ func sendReport() {
 	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
 	sendEventSummary()
 	sendLogonReport(st, rt)
+	sendMonitor()
 	busy = false
 }
 

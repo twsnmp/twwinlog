@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 var busy = false
@@ -33,6 +35,8 @@ var reSubjectUserNameTag = regexp.MustCompile(`<SubjectUserName>([^<]+)</Subject
 var reSubjectDomainNameTag = regexp.MustCompile(`<SubjectDomainName>([^<]+)</SubjectDomainName>`)
 var reSubjectUserSidTag = regexp.MustCompile(`<SubjectUserSid>([^<]+)</SubjectUserSid>`)
 
+const REGISTRY_PATH = "SOFTWARE\\Twise\\TWWINLOG"
+
 // <Data Name='SubjectUserName'>DESKTOP-T6L1D1U$</Data>
 // <Data Name='SubjectDomainName'>WORKGROUP</Data>
 // <Data Name='TargetUserName'>SYSTEM</Data>
@@ -45,6 +49,7 @@ var eventIDMap sync.Map
 
 // startWinlog : start monitor windows event log
 func startWinlog(ctx context.Context) {
+	getLastTime()
 	if debug {
 		lastTime = time.Now().Add(time.Hour * -24)
 	}
@@ -57,6 +62,7 @@ func startWinlog(ctx context.Context) {
 		select {
 		case <-timer.C:
 			count = checkWinlog()
+			saveLastTime()
 			total += count
 			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f", total, count, float64(count)/float64(syslogInterval))
 			if remote != "" {
@@ -124,7 +130,9 @@ func checkWinlog() int {
 	for _, c := range []string{"System", "Security", "Application"} {
 		ret += checkWinlogCh(c)
 	}
-	lastTime = st
+	if ret > 0 {
+		lastTime = st
+	}
 	return ret
 }
 
@@ -272,5 +280,41 @@ func sendClearLog(s *System, l string, t time.Time) {
 		Time:     t,
 		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,subjectsid=%s",
 			subjectUserName, subjectDomainName, subjectUserSid),
+	}
+}
+
+// getLastTime from registry
+func getLastTime() {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, REGISTRY_PATH, registry.QUERY_VALUE)
+	if err != nil {
+		log.Printf("getLastTime err=%v", err)
+		return
+	}
+	defer k.Close()
+	regKey := "LOCAL"
+	if remote != "" {
+		regKey = remote
+	}
+	i, _, err := k.GetIntegerValue(regKey)
+	if err != nil {
+		log.Printf("getLastTime err=%v", err)
+		return
+	}
+	lastTime = time.Unix(int64(i), 0)
+	log.Printf("lastTime=%v", lastTime)
+}
+
+func saveLastTime() {
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REGISTRY_PATH, registry.ALL_ACCESS)
+	if err != nil {
+		log.Printf("saveLastTime err=%v", err)
+	}
+	defer k.Close()
+	regKey := "LOCAL"
+	if remote != "" {
+		regKey = remote
+	}
+	if err = k.SetQWordValue(regKey, uint64(lastTime.Unix())); err != nil {
+		log.Printf("saveLastTime err=%v", err)
 	}
 }

@@ -3,29 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
-var reLogonType = regexp.MustCompile(`<Data Name='LogonType'>(\d+)</Data>`)
-var reSubjectUserName = regexp.MustCompile(`<Data Name='SubjectUserName'>([^<]+)</Data>`)
-var reSubjectDomainName = regexp.MustCompile(`<Data Name='SubjectDomainName'>([^<]+)</Data>`)
-var reTargetUserName = regexp.MustCompile(`<Data Name='TargetUserName'>([^<]+)</Data>`)
-var reTargetDomainName = regexp.MustCompile(`<Data Name='TargetDomainName'>([^<]+)</Data>`)
-var reIpAddress = regexp.MustCompile(`<Data Name='IpAddress'>([^<]+)</Data>`)
-var reSubStatus = regexp.MustCompile(`<Data Name='SubStatus'>([^<]+)</Data>`)
-
-// <Data Name='SubjectUserName'>DESKTOP-T6L1D1U$</Data>
-// <Data Name='SubjectDomainName'>WORKGROUP</Data>
-// <Data Name='TargetUserName'>SYSTEM</Data>
-// <Data Name='TargetDomainName'>NT AUTHORITY</Data>
-// <Data Name='IpAddress'>-</Data>
-// <Data Name='SubStatus'>0xc0000064</Data>
-
 type logonEnt struct {
 	Target          string
+	TargetSid       string
 	Computer        string
 	Count           int
 	Logon           int
@@ -34,6 +19,7 @@ type logonEnt struct {
 	ChangeSubject   int
 	ChangeIP        int
 	ChangeLogonType int
+	LastSubjectSid  string
 	LastSubject     string
 	LastIP          string
 	LastLogonType   string
@@ -44,10 +30,10 @@ type logonEnt struct {
 }
 
 func (e *logonEnt) String() string {
-	return fmt.Sprintf("type=Logon,target=%s,count=%d,logon=%d,failed=%d,logoff=%d,changeSubject=%d,changeLogonType=%d,changeIP=%d,subject=%s,logonType=%s,ip=%s,failCode=%s,ft=%s,lt=%s",
-		e.Target, e.Count, e.Logon, e.Failed, e.Logoff,
+	return fmt.Sprintf("type=Logon,target=%s,targetsid=%s,count=%d,logon=%d,failed=%d,logoff=%d,changeSubject=%d,changeLogonType=%d,changeIP=%d,subject=%s,subjectsid=%s,logonType=%s,ip=%s,failCode=%s,ft=%s,lt=%s",
+		e.Target, e.TargetSid, e.Count, e.Logon, e.Failed, e.Logoff,
 		e.ChangeSubject, e.ChangeLogonType, e.ChangeIP,
-		e.LastSubject, e.LastLogonType, e.LastIP, e.LastFailCode,
+		e.LastSubject, e.LastSubjectSid, e.LastLogonType, e.LastIP, e.LastFailCode,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339),
 	)
@@ -58,13 +44,23 @@ var logonMap sync.Map
 func updateLogon(s *System, l string, t time.Time) {
 	logonType := getLogonType(getEventData(reLogonType, l))
 	subjectUserName := getEventData(reSubjectUserName, l)
+	subjectUserSid := getEventData(reSubjectUserSid, l)
 	subjectDomainName := getEventData(reSubjectDomainName, l)
 	targetUserName := getEventData(reTargetUserName, l)
+	targetServerName := getEventData(reTargetServerName, l)
+	targetUserSid := getEventData(reTargetUserSid, l)
 	targetDomainName := getEventData(reTargetDomainName, l)
 	ipAddress := getEventData(reIpAddress, l)
 	failCode := getFailCode(getEventData(reSubStatus, l))
-	if targetDomainName == "" {
-		targetDomainName = s.Computer
+	if targetServerName == "" {
+		if targetDomainName != "" {
+			targetServerName = targetDomainName
+		} else {
+			targetServerName = s.Computer
+		}
+	}
+	if s.EventID == 4648 {
+		logonType = "Explicit"
 	}
 	ts := t.Unix()
 	if s.EventID == 4625 {
@@ -72,8 +68,8 @@ func updateLogon(s *System, l string, t time.Time) {
 		syslogCh <- &syslogEnt{
 			Severity: 4,
 			Time:     t,
-			Msg: fmt.Sprintf("type=LogonFailed,subject=%s@%s,target=%s@%s,logonType=%s,ip=%s,code=%s,time=%s",
-				subjectUserName, subjectDomainName, targetUserName, targetDomainName, logonType, ipAddress, failCode,
+			Msg: fmt.Sprintf("type=LogonFailed,subject=%s@%s,target=%s@%s,targetsid=%s,logonType=%s,ip=%s,code=%s,time=%s",
+				subjectUserName, subjectDomainName, targetUserName, targetDomainName, targetUserSid, logonType, ipAddress, failCode,
 				t.Format(time.RFC3339),
 			),
 		}
@@ -82,9 +78,10 @@ func updateLogon(s *System, l string, t time.Time) {
 		// Skip Service Logon
 		return
 	}
-	target := fmt.Sprintf("%s@%s", targetUserName, targetDomainName)
+	id := strings.ToUpper(fmt.Sprintf("%s@%s", targetUserName, targetServerName))
+	target := fmt.Sprintf("%s@%s", targetUserName, targetServerName)
 	subject := fmt.Sprintf("%s@%s", subjectUserName, subjectDomainName)
-	if v, ok := logonMap.Load(target); ok {
+	if v, ok := logonMap.Load(id); ok {
 		if e, ok := v.(*logonEnt); ok {
 			incLogonEnt(e, s.EventID)
 			if logonType != e.LastLogonType {
@@ -95,11 +92,12 @@ func updateLogon(s *System, l string, t time.Time) {
 				e.ChangeIP++
 				e.LastIP = ipAddress
 			}
-			if subject != e.LastSubject {
+			if subject != e.LastSubject || subjectUserSid != e.LastSubjectSid {
 				e.ChangeSubject++
 				e.LastSubject = subject
+				e.LastSubjectSid = subjectUserSid
 			}
-			if failCode != "" {
+			if failCode != "" && failCode != "0x0" {
 				e.LastFailCode = failCode
 			}
 			if e.LastTime < ts {
@@ -109,36 +107,31 @@ func updateLogon(s *System, l string, t time.Time) {
 		return
 	}
 	e := &logonEnt{
-		Count:         0,
-		Target:        target,
-		LastIP:        ipAddress,
-		LastSubject:   subject,
-		LastLogonType: logonType,
-		LastFailCode:  failCode,
-		LastTime:      ts,
-		FirstTime:     ts,
+		Count:          0,
+		Target:         target,
+		TargetSid:      targetUserSid,
+		LastIP:         ipAddress,
+		LastSubject:    subject,
+		LastSubjectSid: subjectUserSid,
+		LastLogonType:  logonType,
+		LastFailCode:   failCode,
+		LastTime:       ts,
+		FirstTime:      ts,
 	}
 	incLogonEnt(e, s.EventID)
-	logonMap.Store(target, e)
+	logonMap.Store(id, e)
 }
 
 func incLogonEnt(e *logonEnt, eventID int) {
 	e.Count++
 	switch eventID {
-	case 4624:
+	case 4624, 4648:
 		e.Logon++
 	case 4625:
 		e.Failed++
 	case 4647, 4634:
 		e.Logoff++
 	}
-}
-
-func getEventData(re *regexp.Regexp, l string) string {
-	if a := re.FindAllStringSubmatch(l, 1); len(a) > 0 && len(a[0]) > 1 && a[0][1] != "-" {
-		return a[0][1]
-	}
-	return ""
 }
 
 func getFailCode(c string) string {
@@ -200,7 +193,7 @@ func getLogonType(t string) string {
 	return "Unknown:" + t
 }
 
-func sendLogonReport(st, rt int64) {
+func sendLogon(rt int64) {
 	logonMap.Range(func(k, v interface{}) bool {
 		if e, ok := v.(*logonEnt); ok {
 			if e.LastTime < rt {

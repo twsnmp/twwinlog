@@ -15,7 +15,31 @@ import (
 var busy = false
 var lastTime = time.Now()
 var logonCount = 0
+var processCount = 0
 var logonFailed = 0
+
+var reLogonType = regexp.MustCompile(`<Data Name='LogonType'>(\d+)</Data>`)
+var reSubjectUserName = regexp.MustCompile(`<Data Name='SubjectUserName'>([^<]+)</Data>`)
+var reSubjectDomainName = regexp.MustCompile(`<Data Name='SubjectDomainName'>([^<]+)</Data>`)
+var reTargetUserName = regexp.MustCompile(`<Data Name='TargetUserName'>([^<]+)</Data>`)
+var reTargetDomainName = regexp.MustCompile(`<Data Name='TargetDomainName'>([^<]+)</Data>`)
+var reIpAddress = regexp.MustCompile(`<Data Name='IpAddress'>([^<]+)</Data>`)
+var reSubStatus = regexp.MustCompile(`<Data Name='SubStatus'>([^<]+)</Data>`)
+var reSubjectUserSid = regexp.MustCompile(`<Data Name='SubjectUserSid'>([^<]+)</Data>`)
+var reTargetUserSid = regexp.MustCompile(`<Data Name='TargetUserSid'>([^<]+)</Data>`)
+var reTargetServerName = regexp.MustCompile(`<Data Name='TargetServerName'>([^<]+)</Data>`)
+
+var reSubjectUserNameTag = regexp.MustCompile(`<SubjectUserName>([^<]+)</SubjectUserName>`)
+var reSubjectDomainNameTag = regexp.MustCompile(`<SubjectDomainName>([^<]+)</SubjectDomainName>`)
+var reSubjectUserSidTag = regexp.MustCompile(`<SubjectUserSid>([^<]+)</SubjectUserSid>`)
+
+// <Data Name='SubjectUserName'>DESKTOP-T6L1D1U$</Data>
+// <Data Name='SubjectDomainName'>WORKGROUP</Data>
+// <Data Name='TargetUserName'>SYSTEM</Data>
+// <Data Name='TargetDomainName'>NT AUTHORITY</Data>
+// <Data Name='IpAddress'>-</Data>
+// <Data Name='SubStatus'>0xc0000064</Data>
+// <Data Name='TargetServerName'>WIN-ABEORAE1LF6.ymitest.local</Data>
 
 var eventIDMap sync.Map
 
@@ -44,12 +68,21 @@ func startWinlog(ctx context.Context) {
 				Msg:      msg,
 			}
 			go sendReport()
-			log.Printf("total=%d,count=%d,logon=%d,logonFailed=%d", total, count, logonCount, logonFailed)
+			log.Printf("total=%d,count=%d,logon=%d,logonFailed=%d,process=%d",
+				total, count, logonCount, logonFailed, processCount)
 		case <-ctx.Done():
 			log.Println("stop winlog")
 			return
 		}
 	}
+}
+
+// getEventData : <EventData>タグ内から情報を取得する
+func getEventData(re *regexp.Regexp, l string) string {
+	if a := re.FindAllStringSubmatch(l, 1); len(a) > 0 && len(a[0]) > 1 && a[0][1] != "-" {
+		return a[0][1]
+	}
+	return ""
 }
 
 // syslogでレポートを送信する
@@ -59,10 +92,10 @@ func sendReport() {
 		return
 	}
 	busy = true
-	st := time.Now().Add(-time.Second * time.Duration(syslogInterval)).Unix()
 	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
 	sendEventSummary()
-	sendLogonReport(st, rt)
+	sendLogon(rt)
+	sendProcess(rt)
 	sendMonitor()
 	busy = false
 }
@@ -132,9 +165,15 @@ func checkWinlogCh(c string) int {
 		}
 		t := getEventTime(s.TimeCreated.SystemTime)
 		updateEventIDMap(s, t)
-		switch s.EventID {
-		case 4624, 4625, 4648, 4634, 4647:
-			updateLogon(s, l, t)
+		if c == "Security" {
+			switch s.EventID {
+			case 4624, 4625, 4648, 4634, 4647:
+				updateLogon(s, l, t)
+			case 4688, 4689:
+				updateProcess(s, l, t)
+			case 1102:
+				sendClearLog(s, l, t)
+			}
 		}
 		ret++
 	}
@@ -222,4 +261,16 @@ func sendEventSummary() {
 		}
 		return true
 	})
+}
+
+func sendClearLog(s *System, l string, t time.Time) {
+	subjectUserName := getEventData(reSubjectUserNameTag, l)
+	subjectDomainName := getEventData(reSubjectDomainNameTag, l)
+	subjectUserSid := getEventData(reSubjectUserSidTag, l)
+	syslogCh <- &syslogEnt{
+		Severity: 2,
+		Time:     t,
+		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,subjectsid=%s",
+			subjectUserName, subjectDomainName, subjectUserSid),
+	}
 }

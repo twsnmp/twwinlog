@@ -18,7 +18,7 @@ type privilegeEnt struct {
 }
 
 func (e *privilegeEnt) String() string {
-	return fmt.Sprintf("type=Privilege,subject=%s,subjectsid=%s,computer=%s,count=%d,ft=%s,lt=%s",
+	return fmt.Sprintf("type=Privilege,subject=%s,sid=%s,computer=%s,count=%d,ft=%s,lt=%s",
 		e.Subject, e.SubjectUserSid, e.Computer, e.Count,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339),
@@ -49,6 +49,7 @@ func updatePrivilege(s *System, l string, t time.Time) {
 	e := &privilegeEnt{
 		Count:          1,
 		Subject:        subject,
+		Computer:       s.Computer,
 		SubjectUserSid: subjectUserSid,
 		LastTime:       ts,
 		FirstTime:      ts,

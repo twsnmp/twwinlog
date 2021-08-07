@@ -30,7 +30,7 @@ type logonEnt struct {
 }
 
 func (e *logonEnt) String() string {
-	return fmt.Sprintf("type=Logon,target=%s,targetsid=%s,count=%d,logon=%d,failed=%d,logoff=%d,changeSubject=%d,changeLogonType=%d,changeIP=%d,subject=%s,subjectsid=%s,logonType=%s,ip=%s,failCode=%s,ft=%s,lt=%s",
+	return fmt.Sprintf("type=Logon,target=%s,sid=%s,count=%d,logon=%d,failed=%d,logoff=%d,changeSubject=%d,changeLogonType=%d,changeIP=%d,subject=%s,subsid=%s,logonType=%s,ip=%s,failCode=%s,ft=%s,lt=%s",
 		e.Target, e.TargetSid, e.Count, e.Logon, e.Failed, e.Logoff,
 		e.ChangeSubject, e.ChangeLogonType, e.ChangeIP,
 		e.LastSubject, e.LastSubjectSid, e.LastLogonType, e.LastIP, e.LastFailCode,

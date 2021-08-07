@@ -36,6 +36,10 @@ var reTargetUserSid = regexp.MustCompile(`<Data Name='TargetUserSid'>([^<]+)</Da
 var reTargetServerName = regexp.MustCompile(`<Data Name='TargetServerName'>([^<]+)</Data>`)
 var reTaskName = regexp.MustCompile(`<Data Name='TaskName'>([^<]+)</Data>`)
 var reTargetSid = regexp.MustCompile(`<Data Name='TargetSid'>([^<]+)</Data>`)
+var reServiceName = regexp.MustCompile(`<Data Name='ServiceName'>([^<]+)</Data>`)
+var reServiceSid = regexp.MustCompile(`<Data Name='ServiceSid'>([^<]+)</Data>`)
+var reCertIssuerName = regexp.MustCompile(`<Data Name='CertIssuerName'>([^<]+)</Data>`)
+var reCertSerialNumber = regexp.MustCompile(`<Data Name='CertSerialNumber'>([^<]+)</Data>`)
 
 var reSubjectUserNameTag = regexp.MustCompile(`<SubjectUserName>([^<]+)</SubjectUserName>`)
 var reSubjectDomainNameTag = regexp.MustCompile(`<SubjectDomainName>([^<]+)</SubjectDomainName>`)
@@ -112,8 +116,9 @@ func sendReport() {
 	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
 	sendEventSummary()
 	sendLogon(rt)
-	sendUserAccount(rt)
-	sendKerberos(rt)
+	sendAccount(rt)
+	sendKerberosTGT(rt)
+	sendKerberosST(rt)
 	sendPrivilege(rt)
 	sendTask(rt)
 	sendProcess(rt)
@@ -202,12 +207,14 @@ func checkWinlogCh(c string) int {
 		case 4698:
 			log.Printf("task in %v,%s", s, l)
 			updateTask(s, l, t)
-		case 4768, 4769, 4771, 4820:
-			updateKerberos(s, l, t)
+		case 4768:
+			updateKerberosTGT(s, l, t)
+		case 4769:
+			updateKerberosST(s, l, t)
 		case 4672, 4673:
 			updatePrivilege(s, l, t)
 		case 4720, 4722, 4723, 4724, 4725, 4726, 4738, 4740, 4767, 4781:
-			updateUserAccount(s, l, t)
+			updateAccount(s, l, t)
 		}
 	}
 	return ret
@@ -235,7 +242,7 @@ type EventSummaryEnt struct {
 }
 
 func (e *EventSummaryEnt) String() string {
-	return fmt.Sprintf("type=Summary,Computer=%s,Channel=%s,Provider=%s,EventID=%d,Total=%d,Count=%d,ft=%s,lt=%s",
+	return fmt.Sprintf("type=Summary,computer=%s,channel=%s,provider=%s,eventID=%d,total=%d,count=%d,ft=%s,lt=%s",
 		e.Computer, e.Channel, e.Provider, e.EventID, e.Total, e.Count,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339))
@@ -303,7 +310,7 @@ func sendClearLog(s *System, l string, t time.Time) {
 	syslogCh <- &syslogEnt{
 		Severity: 2,
 		Time:     t,
-		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,subjectsid=%s",
+		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,sid=%s",
 			subjectUserName, subjectDomainName, subjectUserSid),
 	}
 }

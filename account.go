@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type userAccountEnt struct {
+type AccountEnt struct {
 	Target         string
 	TargetSid      string
 	Computer       string
@@ -24,8 +24,8 @@ type userAccountEnt struct {
 	SendTime       int64
 }
 
-func (e *userAccountEnt) String() string {
-	return fmt.Sprintf("type=Account,target=%s,targetsid=%s,computer=%s,count=%d,edit=%d,password=%d,other=%d,changesubject=%d,subject=%s,sbjectsid=%s,ft=%s,lt=%s",
+func (e *AccountEnt) String() string {
+	return fmt.Sprintf("type=Account,target=%s,sid=%s,computer=%s,count=%d,edit=%d,password=%d,other=%d,changesubject=%d,subject=%s,sbjectsid=%s,ft=%s,lt=%s",
 		e.Target, e.TargetSid, e.Computer, e.Count, e.Edit, e.Password, e.Other,
 		e.ChangeSubject,
 		e.LastSubject, e.LastSubjectSid,
@@ -34,9 +34,9 @@ func (e *userAccountEnt) String() string {
 	)
 }
 
-var userAccountMap sync.Map
+var AccountMap sync.Map
 
-func updateUserAccount(s *System, l string, t time.Time) {
+func updateAccount(s *System, l string, t time.Time) {
 	subjectUserName := getEventData(reSubjectUserName, l)
 	subjectUserSid := getEventData(reSubjectUserSid, l)
 	subjectDomainName := getEventData(reSubjectDomainName, l)
@@ -47,9 +47,9 @@ func updateUserAccount(s *System, l string, t time.Time) {
 	id := strings.ToUpper(fmt.Sprintf("%s@%s", targetUserSid, s.Computer))
 	target := fmt.Sprintf("%s@%s", targetUserName, targetDomainName)
 	subject := fmt.Sprintf("%s@%s", subjectUserName, subjectDomainName)
-	if v, ok := userAccountMap.Load(id); ok {
-		if e, ok := v.(*userAccountEnt); ok {
-			incUserAcountEnt(e, s.EventID)
+	if v, ok := AccountMap.Load(id); ok {
+		if e, ok := v.(*AccountEnt); ok {
+			incAcountEnt(e, s.EventID)
 			if subject != e.LastSubject || subjectUserSid != e.LastSubjectSid {
 				e.ChangeSubject++
 				e.LastSubject = subject
@@ -61,7 +61,7 @@ func updateUserAccount(s *System, l string, t time.Time) {
 		}
 		return
 	}
-	e := &userAccountEnt{
+	e := &AccountEnt{
 		Count:          0,
 		Target:         target,
 		TargetSid:      targetUserSid,
@@ -70,11 +70,11 @@ func updateUserAccount(s *System, l string, t time.Time) {
 		LastTime:       ts,
 		FirstTime:      ts,
 	}
-	incUserAcountEnt(e, s.EventID)
-	userAccountMap.Store(id, e)
+	incAcountEnt(e, s.EventID)
+	AccountMap.Store(id, e)
 }
 
-func incUserAcountEnt(e *userAccountEnt, eventID int) {
+func incAcountEnt(e *AccountEnt, eventID int) {
 	e.Count++
 	switch eventID {
 	case 4720, 4726, 4738, 4781:
@@ -86,12 +86,12 @@ func incUserAcountEnt(e *userAccountEnt, eventID int) {
 	}
 }
 
-func sendUserAccount(rt int64) {
-	userAccountMap.Range(func(k, v interface{}) bool {
-		if e, ok := v.(*userAccountEnt); ok {
+func sendAccount(rt int64) {
+	AccountMap.Range(func(k, v interface{}) bool {
+		if e, ok := v.(*AccountEnt); ok {
 			if e.LastTime < rt {
 				log.Printf("delete account=%s", k)
-				userAccountMap.Delete(k)
+				AccountMap.Delete(k)
 				return true
 			}
 			if e.LastTime > e.SendTime {

@@ -117,9 +117,6 @@ func sendProcess(rt int64) {
 				return true
 			}
 			if e.LastTime > e.SendTime {
-				// if debug {
-				// 	log.Printf("process id=%s,e=%v", k, e)
-				// }
 				processCount++
 				syslogCh <- &syslogEnt{
 					Severity: 6,

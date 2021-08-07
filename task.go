@@ -25,7 +25,7 @@ type taskEnt struct {
 // <Data Name="TaskName">\\Microsoft\\StartListener</Data>
 
 func (e *taskEnt) String() string {
-	return fmt.Sprintf("type=Task,taskname=%s,computer=%s,subject=%s,subjectsid=%s,count=%d,ft=%s,lt=%s",
+	return fmt.Sprintf("type=Task,taskname=%s,computer=%s,subject=%s,sid=%s,count=%d,ft=%s,lt=%s",
 		e.TaskName, e.Computer, e.Subject, e.SubjectUserSid, e.Count,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339),
@@ -60,7 +60,6 @@ func updateTask(s *System, l string, t time.Time) {
 		LastTime:       ts,
 		FirstTime:      ts,
 	}
-	log.Printf("task=%v", e)
 	taskMap.Store(id, e)
 }
 

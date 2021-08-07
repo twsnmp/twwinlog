@@ -18,6 +18,10 @@ var busy = false
 var lastTime = time.Now()
 var logonCount = 0
 var processCount = 0
+var kerberosCount = 0
+var taskCount = 0
+var accountCount = 0
+var privilegeCount = 0
 var logonFailed = 0
 
 var reLogonType = regexp.MustCompile(`<Data Name='LogonType'>(\d+)</Data>`)
@@ -30,6 +34,8 @@ var reSubStatus = regexp.MustCompile(`<Data Name='SubStatus'>([^<]+)</Data>`)
 var reSubjectUserSid = regexp.MustCompile(`<Data Name='SubjectUserSid'>([^<]+)</Data>`)
 var reTargetUserSid = regexp.MustCompile(`<Data Name='TargetUserSid'>([^<]+)</Data>`)
 var reTargetServerName = regexp.MustCompile(`<Data Name='TargetServerName'>([^<]+)</Data>`)
+var reTaskName = regexp.MustCompile(`<Data Name='TaskName'>([^<]+)</Data>`)
+var reTargetSid = regexp.MustCompile(`<Data Name='TargetSid'>([^<]+)</Data>`)
 
 var reSubjectUserNameTag = regexp.MustCompile(`<SubjectUserName>([^<]+)</SubjectUserName>`)
 var reSubjectDomainNameTag = regexp.MustCompile(`<SubjectDomainName>([^<]+)</SubjectDomainName>`)
@@ -44,14 +50,17 @@ const REGISTRY_PATH = "SOFTWARE\\Twise\\TWWINLOG"
 // <Data Name='IpAddress'>-</Data>
 // <Data Name='SubStatus'>0xc0000064</Data>
 // <Data Name='TargetServerName'>WIN-ABEORAE1LF6.ymitest.local</Data>
+// <Data Name="TaskName">\\Microsoft\\StartListener</Data>
 
 var eventIDMap sync.Map
+
+var syslogCount = 0
 
 // startWinlog : start monitor windows event log
 func startWinlog(ctx context.Context) {
 	getLastTime()
 	if debug {
-		lastTime = time.Now().Add(time.Hour * -24)
+		lastTime = time.Now().Add(time.Hour * -12)
 	}
 	sendMonitor()
 	timer := time.NewTicker(time.Second * time.Duration(syslogInterval))
@@ -64,7 +73,8 @@ func startWinlog(ctx context.Context) {
 			count = checkWinlog()
 			saveLastTime()
 			total += count
-			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f", total, count, float64(count)/float64(syslogInterval))
+			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f,send=%d",
+				total, count, float64(count)/float64(syslogInterval), syslogCount)
 			if remote != "" {
 				msg += ",remote=" + remote
 			}
@@ -74,8 +84,9 @@ func startWinlog(ctx context.Context) {
 				Msg:      msg,
 			}
 			go sendReport()
-			log.Printf("total=%d,count=%d,logon=%d,logonFailed=%d,process=%d",
-				total, count, logonCount, logonFailed, processCount)
+			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
+				total, count, syslogCount, logonCount, logonFailed, processCount, taskCount, kerberosCount,
+				privilegeCount, accountCount)
 		case <-ctx.Done():
 			log.Println("stop winlog")
 			return
@@ -101,6 +112,10 @@ func sendReport() {
 	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
 	sendEventSummary()
 	sendLogon(rt)
+	sendUserAccount(rt)
+	sendKerberos(rt)
+	sendPrivilege(rt)
+	sendTask(rt)
 	sendProcess(rt)
 	sendMonitor()
 	busy = false
@@ -136,7 +151,6 @@ func checkWinlog() int {
 	return ret
 }
 
-var reEvent = regexp.MustCompile(`<Event.+Event>`)
 var reSystem = regexp.MustCompile(`<System.+System>`)
 
 func checkWinlogCh(c string) int {
@@ -160,7 +174,8 @@ func checkWinlogCh(c string) int {
 		return 0
 	}
 	s := new(System)
-	for _, l := range reEvent.FindAllString(string(out), -1) {
+	bSec := c == "Security"
+	for _, l := range strings.Split(strings.ReplaceAll(string(out), "\n", ""), "</Event>") {
 		l := strings.TrimSpace(l)
 		if len(l) < 10 {
 			continue
@@ -173,17 +188,27 @@ func checkWinlogCh(c string) int {
 		}
 		t := getEventTime(s.TimeCreated.SystemTime)
 		updateEventIDMap(s, t)
-		if c == "Security" {
-			switch s.EventID {
-			case 4624, 4625, 4648, 4634, 4647:
-				updateLogon(s, l, t)
-			case 4688, 4689:
-				updateProcess(s, l, t)
-			case 1102:
-				sendClearLog(s, l, t)
-			}
-		}
 		ret++
+		if !bSec {
+			continue
+		}
+		switch s.EventID {
+		case 4624, 4625, 4648, 4634, 4647:
+			updateLogon(s, l, t)
+		case 4688, 4689:
+			updateProcess(s, l, t)
+		case 1102:
+			sendClearLog(s, l, t)
+		case 4698:
+			log.Printf("task in %v,%s", s, l)
+			updateTask(s, l, t)
+		case 4768, 4769, 4771, 4820:
+			updateKerberos(s, l, t)
+		case 4672, 4673:
+			updatePrivilege(s, l, t)
+		case 4720, 4722, 4723, 4724, 4725, 4726, 4738, 4740, 4767, 4781:
+			updateUserAccount(s, l, t)
+		}
 	}
 	return ret
 }

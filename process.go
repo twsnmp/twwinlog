@@ -113,7 +113,7 @@ func sendProcess(rt int64) {
 		if e, ok := v.(*processEnt); ok {
 			if e.LastTime < rt {
 				log.Printf("delete logon=%s", k)
-				logonMap.Delete(k)
+				processMap.Delete(k)
 				return true
 			}
 			if e.LastTime > e.SendTime {

@@ -51,6 +51,7 @@ func startSyslog(ctx context.Context) {
 			log.Println("stop syslog")
 			return
 		case l := <-syslogCh:
+			syslogCount++
 			s := fmt.Sprintf("<%d>%s %s twwinlog: %s", 21*8+l.Severity, l.Time.Format("2006-01-02T15:04:05-07:00"), host, l.Msg)
 			for _, d := range dst {
 				d.Write([]byte(s))

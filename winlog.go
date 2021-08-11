@@ -62,11 +62,15 @@ var syslogCount = 0
 
 // startWinlog : start monitor windows event log
 func startWinlog(ctx context.Context) {
+	param := remote
+	if param == "" {
+		param = "LOCAL"
+	}
 	getLastTime()
 	if debug {
 		lastTime = time.Now().Add(time.Hour * -12)
 	}
-	sendMonitor()
+	sendMonitor(param)
 	timer := time.NewTicker(time.Second * time.Duration(syslogInterval))
 	defer timer.Stop()
 	total := 0
@@ -77,20 +81,18 @@ func startWinlog(ctx context.Context) {
 			count = checkWinlog()
 			saveLastTime()
 			total += count
-			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f,send=%d",
-				total, count, float64(count)/float64(syslogInterval), syslogCount)
-			if remote != "" {
-				msg += ",remote=" + remote
-			}
+			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f,send=%d,param=%s",
+				total, count, float64(count)/float64(syslogInterval), syslogCount, param)
 			syslogCh <- &syslogEnt{
 				Time:     time.Now(),
 				Severity: 6,
 				Msg:      msg,
 			}
-			go sendReport()
+			go sendReport(param)
 			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
 				total, count, syslogCount, logonCount, logonFailed, processCount, taskCount, kerberosCount,
 				privilegeCount, accountCount)
+			syslogCount = 0
 		case <-ctx.Done():
 			log.Println("stop winlog")
 			return
@@ -107,7 +109,7 @@ func getEventData(re *regexp.Regexp, l string) string {
 }
 
 // syslogでレポートを送信する
-func sendReport() {
+func sendReport(param string) {
 	if busy {
 		log.Printf("send report busy")
 		return
@@ -122,7 +124,7 @@ func sendReport() {
 	sendPrivilege(rt)
 	sendTask(rt)
 	sendProcess(rt)
-	sendMonitor()
+	sendMonitor(param)
 	busy = false
 }
 

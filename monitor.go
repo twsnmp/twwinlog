@@ -17,7 +17,7 @@ var lastBytesRecv uint64
 var lastBytesSent uint64
 
 // sendMonitor : センサーが稼働するPCのリソース情報を送信する
-func sendMonitor() {
+func sendMonitor(param string) {
 	msg := "type=Monitor,"
 	cpus, err := cpu.Percent(0, false)
 	if err != nil {
@@ -64,7 +64,7 @@ func sendMonitor() {
 		log.Printf("sendMonitor err=%v", err)
 		return
 	}
-	msg += fmt.Sprintf(",process=%d", len(pids))
+	msg += fmt.Sprintf(",process=%d,param=%s", len(pids), param)
 	syslogCh <- &syslogEnt{
 		Time:     time.Now(),
 		Severity: 6,

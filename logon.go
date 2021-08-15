@@ -135,12 +135,10 @@ func incLogonEnt(e *logonEnt, eventID int) {
 }
 
 func getFailCode(c string) string {
-	c = strings.TrimSpace(c)
-	if c == "" {
-		return ""
-	}
-	c = strings.ToLower(c)
+	c = strings.ToLower(strings.TrimSpace(c))
 	switch c {
+	case "", "0x0":
+		return ""
 	case "0xc0000064":
 		return "User not Found"
 	case "0xc000006a":

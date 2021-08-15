@@ -39,10 +39,11 @@ func updatePrivilege(s *System, l string, t time.Time) {
 	ts := t.Unix()
 	subject := fmt.Sprintf("%s@%s", subjectUserName, subjectDomainName)
 	if v, ok := privilegeMap.Load(subject); ok {
-		if e, ok := v.(*logonEnt); ok {
+		if e, ok := v.(*privilegeEnt); ok {
 			if e.LastTime < ts {
 				e.LastTime = ts
 			}
+			e.Count++
 		}
 		return
 	}
@@ -61,7 +62,7 @@ func sendPrivilege(rt int64) {
 	privilegeMap.Range(func(k, v interface{}) bool {
 		if e, ok := v.(*privilegeEnt); ok {
 			if e.LastTime < rt {
-				log.Printf("delete logon=%s", k)
+				log.Printf("delete privilege=%s", k)
 				privilegeMap.Delete(k)
 				return true
 			}

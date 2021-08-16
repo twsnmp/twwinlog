@@ -8,18 +8,16 @@ import (
 )
 
 type privilegeEnt struct {
-	Subject        string
-	SubjectUserSid string
-	Computer       string
-	Count          int
-	FirstTime      int64
-	LastTime       int64
-	SendTime       int64
+	Subject   string
+	Computer  string
+	Count     int
+	FirstTime int64
+	LastTime  int64
 }
 
 func (e *privilegeEnt) String() string {
-	return fmt.Sprintf("type=Privilege,subject=%s,sid=%s,computer=%s,count=%d,ft=%s,lt=%s",
-		e.Subject, e.SubjectUserSid, e.Computer, e.Count,
+	return fmt.Sprintf("type=Privilege,subject=%s,computer=%s,count=%d,ft=%s,lt=%s",
+		e.Subject, e.Computer, e.Count,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339),
 	)
@@ -29,7 +27,6 @@ var privilegeMap sync.Map
 
 func updatePrivilege(s *System, l string, t time.Time) {
 	subjectUserName := getEventData(reSubjectUserName, l)
-	subjectUserSid := getEventData(reSubjectUserSid, l)
 	subjectDomainName := getEventData(reSubjectDomainName, l)
 	switch subjectUserName {
 	case "LOCAL SERVICE", "SYSTEM":
@@ -48,36 +45,28 @@ func updatePrivilege(s *System, l string, t time.Time) {
 		return
 	}
 	e := &privilegeEnt{
-		Count:          1,
-		Subject:        subject,
-		Computer:       s.Computer,
-		SubjectUserSid: subjectUserSid,
-		LastTime:       ts,
-		FirstTime:      ts,
+		Count:     1,
+		Subject:   subject,
+		Computer:  s.Computer,
+		LastTime:  ts,
+		FirstTime: ts,
 	}
 	privilegeMap.Store(subject, e)
 }
 
-func sendPrivilege(rt int64) {
+func sendPrivilege() {
 	privilegeMap.Range(func(k, v interface{}) bool {
 		if e, ok := v.(*privilegeEnt); ok {
-			if e.LastTime < rt {
-				log.Printf("delete privilege=%s", k)
-				privilegeMap.Delete(k)
-				return true
+			if debug {
+				log.Printf("privilege id=%s,e=%v", k, e)
 			}
-			if e.LastTime > e.SendTime {
-				if debug {
-					log.Printf("privilege id=%s,e=%v", k, e)
-				}
-				privilegeCount++
-				syslogCh <- &syslogEnt{
-					Severity: 6,
-					Time:     time.Now(),
-					Msg:      e.String(),
-				}
-				e.SendTime = time.Now().Unix()
+			privilegeCount++
+			syslogCh <- &syslogEnt{
+				Severity: 6,
+				Time:     time.Now(),
+				Msg:      e.String(),
 			}
+			privilegeMap.Delete(k)
 		}
 		return true
 	})

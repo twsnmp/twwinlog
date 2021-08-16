@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"sync"
 	"time"
@@ -21,26 +20,22 @@ var reStatus = regexp.MustCompile(`<Data Name='Status'>([^<]+)</Data>`)
 // <Data Name='ProcessName'>C:\Windows\System32\RuntimeBroker.exe</Data>
 
 type processEnt struct {
-	Computer      string
-	Process       string
-	Count         int
-	StartCount    int
-	ExitCount     int
-	ChangeSubject int
-	ChangeStatus  int
-	ChangeParent  int
-	LastSubject   string
-	LastStatus    string
-	LastParent    string
-	FirstTime     int64
-	LastTime      int64
-	SendTime      int64
+	Computer    string
+	Process     string
+	Count       int
+	StartCount  int
+	ExitCount   int
+	LastSubject string
+	LastStatus  string
+	LastParent  string
+	FirstTime   int64
+	LastTime    int64
+	SendTime    int64
 }
 
 func (e *processEnt) String() string {
-	return fmt.Sprintf("type=Process,computer=%s,process=%s,count=%d,start=%d,exit=%d,changeSubject=%d,changeStatus=%d,changeParent=%d,subject=%s,status=%s,parent=%s,ft=%s,lt=%s",
+	return fmt.Sprintf("type=Process,computer=%s,process=%s,count=%d,start=%d,exit=%d,subject=%s,status=%s,parent=%s,ft=%s,lt=%s",
 		e.Computer, e.Process, e.Count, e.StartCount, e.ExitCount,
-		e.ChangeSubject, e.ChangeStatus, e.ChangeParent,
 		e.LastSubject, e.LastStatus, e.LastParent,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339),
@@ -75,16 +70,10 @@ func updateProcess(s *System, l string, t time.Time) {
 			if s.EventID == 4688 {
 				// Start
 				e.StartCount++
-				if subject != e.LastSubject {
-					e.ChangeSubject++
-					e.LastSubject = subject
-				}
+				e.LastSubject = subject
 			} else {
 				e.ExitCount++
-				if status != "" && status != e.LastStatus {
-					e.LastStatus = status
-					e.ChangeStatus++
-				}
+				e.LastStatus = status
 			}
 			if e.LastTime < ts {
 				e.LastTime = ts
@@ -92,39 +81,34 @@ func updateProcess(s *System, l string, t time.Time) {
 		}
 		return
 	}
-	if s.EventID != 4688 {
-		return
-	}
 	e := &processEnt{
 		Computer:    s.Computer,
 		Process:     process,
 		Count:       1,
-		StartCount:  1,
 		LastSubject: subject,
 		LastParent:  parent,
 		LastTime:    ts,
 		FirstTime:   ts,
 	}
+	if s.EventID == 4688 {
+		e.StartCount++
+	} else {
+		e.ExitCount++
+		e.LastStatus = status
+	}
 	processMap.Store(id, e)
 }
 
-func sendProcess(rt int64) {
+func sendProcess() {
 	processMap.Range(func(k, v interface{}) bool {
 		if e, ok := v.(*processEnt); ok {
-			if e.LastTime < rt {
-				log.Printf("delete logon=%s", k)
-				processMap.Delete(k)
-				return true
+			processCount++
+			syslogCh <- &syslogEnt{
+				Severity: 6,
+				Time:     time.Now(),
+				Msg:      e.String(),
 			}
-			if e.LastTime > e.SendTime {
-				processCount++
-				syslogCh <- &syslogEnt{
-					Severity: 6,
-					Time:     time.Now(),
-					Msg:      e.String(),
-				}
-				e.SendTime = time.Now().Unix()
-			}
+			processMap.Delete(k)
 		}
 		return true
 	})

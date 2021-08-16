@@ -115,15 +115,13 @@ func sendReport(param string) {
 		return
 	}
 	busy = true
-	rt := time.Now().Add(-time.Second * time.Duration(retentionData)).Unix()
 	sendEventSummary()
-	sendLogon(rt)
-	sendAccount(rt)
-	sendKerberosTGT(rt)
-	sendKerberosST(rt)
-	sendPrivilege(rt)
-	sendTask(rt)
-	sendProcess(rt)
+	sendLogon()
+	sendAccount()
+	sendKerberos()
+	sendPrivilege()
+	sendTask()
+	sendProcess()
 	sendMonitor(param)
 	busy = false
 }
@@ -209,10 +207,8 @@ func checkWinlogCh(c string) int {
 		case 4698:
 			log.Printf("task in %v,%s", s, l)
 			updateTask(s, l, t)
-		case 4768:
-			updateKerberosTGT(s, l, t)
-		case 4769:
-			updateKerberosST(s, l, t)
+		case 4768, 4769:
+			updateKerberos(s, l, t)
 		case 4672, 4673:
 			updatePrivilege(s, l, t)
 		case 4720, 4722, 4723, 4724, 4725, 4726, 4738, 4740, 4767, 4781:

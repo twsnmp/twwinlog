@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var version = "v1.0.0"
+var version = "v1.1.0"
 var commit = ""
 var syslogDst = ""
 var remote = ""
@@ -22,7 +22,6 @@ var user = ""
 var auth = ""
 var password = ""
 var syslogInterval = 300
-var retentionData = 3600 * 24 * 7
 var cpuprofile string
 var memprofile string
 var debug bool
@@ -34,7 +33,6 @@ func init() {
 	flag.StringVar(&auth, "auth", "", "remote authentication:Default|Negotiate|Kerberos|NTLM")
 	flag.StringVar(&password, "password", "", "remote user's password")
 	flag.IntVar(&syslogInterval, "interval", 300, "syslog send interval(sec)")
-	flag.IntVar(&retentionData, "retention", 3600*24*7, "data retention time(sec)")
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to `file`")
 	flag.StringVar(&memprofile, "memprofile", "", "write memory profile to `file`")
 	flag.BoolVar(&debug, "debug", false, "Debug Mode")

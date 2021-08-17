@@ -115,7 +115,7 @@ func sendReport(param string) {
 		return
 	}
 	busy = true
-	sendEventSummary()
+	sendEventID()
 	sendLogon()
 	sendAccount()
 	sendKerberos()
@@ -227,7 +227,7 @@ func getEventTime(s string) time.Time {
 	return t
 }
 
-type EventSummaryEnt struct {
+type EventIDEnt struct {
 	Computer  string
 	Provider  string
 	Channel   string
@@ -239,8 +239,8 @@ type EventSummaryEnt struct {
 	LastTime  int64
 }
 
-func (e *EventSummaryEnt) String() string {
-	return fmt.Sprintf("type=Summary,computer=%s,channel=%s,provider=%s,eventID=%d,total=%d,count=%d,ft=%s,lt=%s",
+func (e *EventIDEnt) String() string {
+	return fmt.Sprintf("type=EventID,computer=%s,channel=%s,provider=%s,eventID=%d,total=%d,count=%d,ft=%s,lt=%s",
 		e.Computer, e.Channel, e.Provider, e.EventID, e.Total, e.Count,
 		time.Unix(e.FirstTime, 0).Format(time.RFC3339),
 		time.Unix(e.LastTime, 0).Format(time.RFC3339))
@@ -250,7 +250,7 @@ func updateEventIDMap(s *System, t time.Time) {
 	ts := t.Unix()
 	id := fmt.Sprintf("%s:%s:%d", s.Computer, s.Provider, s.EventID)
 	if v, ok := eventIDMap.Load(id); ok {
-		if e, ok := v.(*EventSummaryEnt); ok {
+		if e, ok := v.(*EventIDEnt); ok {
 			e.Count++
 			e.Total++
 			if e.LastTime < ts {
@@ -262,7 +262,7 @@ func updateEventIDMap(s *System, t time.Time) {
 		}
 		return
 	}
-	eventIDMap.Store(id, &EventSummaryEnt{
+	eventIDMap.Store(id, &EventIDEnt{
 		EventID:   s.EventID,
 		Level:     s.Level,
 		Computer:  s.Computer,
@@ -275,9 +275,9 @@ func updateEventIDMap(s *System, t time.Time) {
 	})
 }
 
-func sendEventSummary() {
+func sendEventID() {
 	eventIDMap.Range(func(k, v interface{}) bool {
-		if e, ok := v.(*EventSummaryEnt); ok {
+		if e, ok := v.(*EventIDEnt); ok {
 			if e.Count < 1 {
 				return true
 			}

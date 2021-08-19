@@ -51,6 +51,8 @@ func updateAccount(s *System, l string, t time.Time) {
 		return
 	}
 	e := &AccountEnt{
+		Subject:   subject,
+		Computer:  s.Computer,
 		Count:     0,
 		Target:    target,
 		LastTime:  ts,

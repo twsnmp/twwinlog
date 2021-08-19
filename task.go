@@ -38,8 +38,8 @@ func updateTask(s *System, l string, t time.Time) {
 	subjectDomainName := getEventData(reSubjectDomainName, l)
 	taskName := getEventData(reTaskName, l)
 	ts := t.Unix()
-	id := strings.ToUpper(fmt.Sprintf("%s:%s", taskName, s.Computer))
 	subject := fmt.Sprintf("%s@%s", subjectUserName, subjectDomainName)
+	id := strings.ToUpper(fmt.Sprintf("%s:%s:%s", taskName, s.Computer, subject))
 	if v, ok := taskMap.Load(id); ok {
 		if e, ok := v.(*taskEnt); ok {
 			e.Count++

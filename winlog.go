@@ -17,12 +17,13 @@ import (
 var busy = false
 var lastTime = time.Now()
 var logonCount = 0
+var logoffCount = 0
+var logonFailedCount = 0
 var processCount = 0
 var kerberosCount = 0
 var taskCount = 0
 var accountCount = 0
 var privilegeCount = 0
-var logonFailed = 0
 
 var reLogonType = regexp.MustCompile(`<Data Name='LogonType'>(\d+)</Data>`)
 var reSubjectUserName = regexp.MustCompile(`<Data Name='SubjectUserName'>([^<]+)</Data>`)
@@ -88,9 +89,9 @@ func startWinlog(ctx context.Context) {
 				Severity: 6,
 				Msg:      msg,
 			}
-			go sendReport(param)
-			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
-				total, count, syslogCount, logonCount, logonFailed, processCount, taskCount, kerberosCount,
+			sendReport(param)
+			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logoff=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
+				total, count, syslogCount, logonCount, logoffCount, logonFailedCount, processCount, taskCount, kerberosCount,
 				privilegeCount, accountCount)
 			syslogCount = 0
 		case <-ctx.Done():
@@ -116,7 +117,6 @@ func sendReport(param string) {
 	}
 	busy = true
 	sendEventID()
-	sendLogon()
 	sendAccount()
 	sendKerberos()
 	sendPrivilege()
@@ -199,7 +199,7 @@ func checkWinlogCh(c string) int {
 		}
 		switch s.EventID {
 		case 4624, 4625, 4648, 4634, 4647:
-			updateLogon(s, l, t)
+			checkLogon(s, l, t)
 		case 4688, 4689:
 			updateProcess(s, l, t)
 		case 1102:
@@ -224,7 +224,7 @@ func getEventTime(s string) time.Time {
 		log.Printf(" err=%v", err)
 		return time.Now()
 	}
-	return t
+	return t.Local()
 }
 
 type EventIDEnt struct {

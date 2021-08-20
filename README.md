@@ -25,6 +25,7 @@ Windowsのイベントログを監視してTWSNMPで監視するために必要�
 ## Status
 
 お試し版v1.0.0をリリースしました。(2021/8/8)
+ログ送信改善版v1.1.0をリリースしました。(2021/8/21)
 
 ## Build
 
@@ -69,8 +70,6 @@ Usage of E:\twsnmpfc\twwinlog.exe:
         remote user's password
   -remote string
         remote windows pc
-  -retention int
-        data retention time(sec) (default 604800)
   -syslog string
         syslog destnation list
   -user string

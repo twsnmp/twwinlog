@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -54,7 +56,7 @@ func updateProcess(s *System, l string, t time.Time) {
 	switch s.EventID {
 	case 4688:
 		process = getEventData(reNewProcessName, l)
-		parent = getEventData(reNewProcessName, l)
+		parent = getEventData(reParentProcessName, l)
 	case 4689:
 		process = getEventData(reProcessName, l)
 		status = getEventData(reStatus, l)
@@ -71,9 +73,14 @@ func updateProcess(s *System, l string, t time.Time) {
 				// Start
 				e.StartCount++
 				e.LastSubject = subject
+				e.LastParent = parent
 			} else {
 				e.ExitCount++
-				e.LastStatus = status
+				if strings.HasPrefix(status, "0x") {
+					e.LastStatus = status
+				} else {
+					log.Println("bad status", l)
+				}
 			}
 			if e.LastTime < ts {
 				e.LastTime = ts

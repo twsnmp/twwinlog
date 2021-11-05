@@ -1,19 +1,20 @@
 # twwinlog
-Windows event log sensor for TWSNMP
-TWSNMPのためのWindowsイベントログセンサー
+Windows event log sensor for TWSNMP FC  
+TWSNMP FCのためのWindowsイベントログセンサー
 
 [![Godoc Reference](https://godoc.org/github.com/twsnmp/twwinlog?status.svg)](http://godoc.org/github.com/twsnmp/twwinlog)
 [![Go Report Card](https://goreportcard.com/badge/twsnmp/twwinlog)](https://goreportcard.com/report/twsnmp/twwinlog)
 
 ## Overview
 
-Windowsのイベントログを監視してTWSNMPで監視するために必要な情報をsyslogで送信するためのセンサープログラムです。
+WindowsのイベントログをTWSNMP FCにsyslogで送信するためのセンサープログラムです。  
 現在のバージョンでは以下の情報を取得できます。
 
 - イベント数の集計
 - イベントID別の集計
 - ログオンに関する情報(4624, 4625, 4648, 4634, 4647)
-- アカウントの変更に関する情報(4720,4722,4723,4724,4725,4726,4738,4740,4767,4781)
+- アカウントの変更に関する情報  
+   (4720,4722,4723,4724,4725,4726,4738,4740,4767,4781)
 - 特権アクセスに関する情報(4672,4673)
 - Kerberos認証に関する情報(4768,4769)
 - スケジュールタスクに関する情報(4698)
@@ -24,8 +25,8 @@ Windowsのイベントログを監視してTWSNMPで監視するために必要�
 
 ## Status
 
-お試し版v1.0.0をリリースしました。(2021/8/8)
-ログ送信改善版v1.1.0をリリースしました。(2021/8/21)
+お試し版v1.0.0をリリースしました。(2021/8/8)  
+ログ送信改善版v1.1.0をリリースしました。(2021/8/21)  
 
 ## Build
 
@@ -76,8 +77,8 @@ Usage of E:\twsnmpfc\twwinlog.exe:
         remote user name
 ```
 
-syslogの送信先はカンマ区切りで複数指定できます。:に続けてポート番号を
-指定することもできます。
+syslogの送信先はカンマ区切りで複数指定できます。  
+:に続けてポート番号を指定することもできます。  
 
 ```
 -syslog 192.168.1.1,192.168.1.2:5514
@@ -101,6 +102,14 @@ syslogの送信先はカンマ区切りで複数指定できます。:に続け�
 ```
 
 のように起動します。
+
+## TWSNMP FCのパッケージ
+
+TWSNMP FCのパッケージにtwWinlogが含まれています。  
+Windows版のみです。  
+詳しくは、  
+https://note.com/twsnmp/n/nc6e49c284afb  
+を見てください。
 
 
 ## Copyright

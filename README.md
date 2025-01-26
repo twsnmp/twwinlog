@@ -122,6 +122,24 @@ Usage of E:\twsnmpfc\twwinlog.exe:
         remote user name
 ```
 
+
+| Parameters | Contents |
+|---|---|
+| Syslog | Syslog destination |
+| Interval | Check interval |
+| Auth | Remote PC authentication method |
+| User/Password | User name password for authentication of remote PC |
+| Remoe | Report PC |
+
+|パラメータ|内容|
+|---|---|
+|syslog|syslogの送信先|
+|interval|チェック間隔|
+|auth|リモートPCの認証方法|
+|user/password|リモートPCの認証時のユーザー名パスワード|
+|remoe|リポートPC|
+
+
 Syslog destinations can be specified multiple by separation of comma.
 : You can also specify the port number.
 

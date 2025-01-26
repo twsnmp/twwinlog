@@ -17,6 +17,7 @@ type syslogEnt struct {
 }
 
 var syslogCh chan *syslogEnt
+var syslogCount = 0
 
 func startSyslog(ctx context.Context) {
 	syslogCh = make(chan *syslogEnt, 1000)

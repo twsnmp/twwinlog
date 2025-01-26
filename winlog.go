@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -58,8 +60,6 @@ const REGISTRY_PATH = "SOFTWARE\\Twise\\TWWINLOG"
 // <Data Name="TaskName">\\Microsoft\\StartListener</Data>
 
 var eventIDMap sync.Map
-
-var syslogCount = 0
 
 // startWinlog : start monitor windows event log
 func startWinlog(ctx context.Context) {
@@ -203,7 +203,7 @@ func checkWinlogCh(c string) int {
 		case 4688, 4689:
 			updateProcess(s, l, t)
 		case 1102:
-			sendClearLog(s, l, t)
+			sendClearLog(l, t)
 		case 4698:
 			log.Printf("task in %v,%s", s, l)
 			updateTask(s, l, t)
@@ -301,7 +301,7 @@ func sendEventID() {
 	})
 }
 
-func sendClearLog(s *System, l string, t time.Time) {
+func sendClearLog(l string, t time.Time) {
 	subjectUserName := getEventData(reSubjectUserNameTag, l)
 	subjectDomainName := getEventData(reSubjectDomainNameTag, l)
 	subjectUserSid := getEventData(reSubjectUserSidTag, l)

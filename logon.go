@@ -21,7 +21,7 @@ func checkLogon(s *System, l string, t time.Time) {
 	targetUserName := getEventData(reTargetUserName, l)
 	targetServerName := getEventData(reTargetServerName, l)
 	targetDomainName := getEventData(reTargetDomainName, l)
-	ipAddress := getEventData(reIpAddress, l)
+	ipAddress := getEventData(reIPAddress, l)
 	failedCode := getFailedCode(getEventData(reSubStatus, l))
 	if targetServerName == "" {
 		if targetDomainName != "" {

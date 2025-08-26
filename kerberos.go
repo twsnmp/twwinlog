@@ -73,7 +73,7 @@ func updateKerberos(s *System, l string, t time.Time) {
 	targetUserName := getEventData(reTargetUserName, l)
 	targetDomainName := getEventData(reTargetDomainName, l)
 	serviceName := getEventData(reServiceName, l)
-	ipAddress := getEventData(reIpAddress, l)
+	ipAddress := getEventData(reIPAddress, l)
 	cert := getEventData(reCertIssuerName, l) + ":" + getEventData(reCertSerialNumber, l)
 	status := getKerberosFailCode(getEventData(reStatus, l))
 	ticketType := "TGT"

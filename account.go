@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// 誰がどのアカウントを変更したか？
+// AccountEnt represents information about which user changed which account.
 type AccountEnt struct {
 	// ID = Target + Subject + Computer
 	Target    string

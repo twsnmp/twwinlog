@@ -32,15 +32,11 @@ var reSubjectUserName = regexp.MustCompile(`<Data Name='SubjectUserName'>([^<]+)
 var reSubjectDomainName = regexp.MustCompile(`<Data Name='SubjectDomainName'>([^<]+)</Data>`)
 var reTargetUserName = regexp.MustCompile(`<Data Name='TargetUserName'>([^<]+)</Data>`)
 var reTargetDomainName = regexp.MustCompile(`<Data Name='TargetDomainName'>([^<]+)</Data>`)
-var reIpAddress = regexp.MustCompile(`<Data Name='IpAddress'>([^<]+)</Data>`)
+var reIPAddress = regexp.MustCompile(`<Data Name='IpAddress'>([^<]+)</Data>`)
 var reSubStatus = regexp.MustCompile(`<Data Name='SubStatus'>([^<]+)</Data>`)
-var reSubjectUserSid = regexp.MustCompile(`<Data Name='SubjectUserSid'>([^<]+)</Data>`)
-var reTargetUserSid = regexp.MustCompile(`<Data Name='TargetUserSid'>([^<]+)</Data>`)
 var reTargetServerName = regexp.MustCompile(`<Data Name='TargetServerName'>([^<]+)</Data>`)
 var reTaskName = regexp.MustCompile(`<Data Name='TaskName'>([^<]+)</Data>`)
-var reTargetSid = regexp.MustCompile(`<Data Name='TargetSid'>([^<]+)</Data>`)
 var reServiceName = regexp.MustCompile(`<Data Name='ServiceName'>([^<]+)</Data>`)
-var reServiceSid = regexp.MustCompile(`<Data Name='ServiceSid'>([^<]+)</Data>`)
 var reCertIssuerName = regexp.MustCompile(`<Data Name='CertIssuerName'>([^<]+)</Data>`)
 var reCertSerialNumber = regexp.MustCompile(`<Data Name='CertSerialNumber'>([^<]+)</Data>`)
 
@@ -48,7 +44,7 @@ var reSubjectUserNameTag = regexp.MustCompile(`<SubjectUserName>([^<]+)</Subject
 var reSubjectDomainNameTag = regexp.MustCompile(`<SubjectDomainName>([^<]+)</SubjectDomainName>`)
 var reSubjectUserSidTag = regexp.MustCompile(`<SubjectUserSid>([^<]+)</SubjectUserSid>`)
 
-const REGISTRY_PATH = "SOFTWARE\\Twise\\TWWINLOG"
+const RegistryPath = "SOFTWARE\\Twise\\TWWINLOG"
 
 // <Data Name='SubjectUserName'>DESKTOP-T6L1D1U$</Data>
 // <Data Name='SubjectDomainName'>WORKGROUP</Data>
@@ -126,7 +122,7 @@ func sendReport(param string) {
 	busy = false
 }
 
-// Windows Event Log XML format
+// System represents the Windows Event Log XML format.
 type System struct {
 	Provider struct {
 		Name string `xml:"Name,attr"`
@@ -315,7 +311,7 @@ func sendClearLog(l string, t time.Time) {
 
 // getLastTime from registry
 func getLastTime() {
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, REGISTRY_PATH, registry.QUERY_VALUE)
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, RegistryPath, registry.QUERY_VALUE)
 	if err != nil {
 		log.Printf("getLastTime err=%v", err)
 		return
@@ -335,7 +331,7 @@ func getLastTime() {
 }
 
 func saveLastTime() {
-	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, REGISTRY_PATH, registry.ALL_ACCESS)
+	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, RegistryPath, registry.ALL_ACCESS)
 	if err != nil {
 		log.Printf("saveLastTime err=%v", err)
 	}

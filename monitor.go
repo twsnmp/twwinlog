@@ -42,6 +42,12 @@ func sendMonitor(param string) {
 		log.Printf("sendMonitor err=%v", err)
 		return
 	}
+	mqttData := &mqttMonitorDataEnt{
+		Time:   time.Now().Format(time.RFC3339),
+		CPU:    cpus[0],
+		Load:   loads.Load1,
+		Memory: mems.UsedPercent,
+	}
 	now := time.Now().Unix()
 	if lastMonitorTime > 0 {
 		diff := now - lastMonitorTime
@@ -54,6 +60,10 @@ func sendMonitor(param string) {
 			txSpeed /= (1000 * 1000)
 			msg += fmt.Sprintf(",recv=%d,sent=%d,rxSpeed=%.3f,txSpeed=%.3f",
 				dRecv, dSent, rxSpeed, txSpeed)
+			mqttData.Sent = dSent
+			mqttData.Recv = dRecv
+			mqttData.TxSpeed = txSpeed
+			mqttData.RxSpeed = rxSpeed
 		}
 	}
 	lastMonitorTime = time.Now().Unix()
@@ -65,9 +75,11 @@ func sendMonitor(param string) {
 		return
 	}
 	msg += fmt.Sprintf(",process=%d,param=%s", len(pids), param)
+	mqttData.Process = len(pids)
 	sendSyslog(&syslogEnt{
 		Time:     time.Now(),
 		Severity: 6,
 		Msg:      msg,
 	})
+	publishMQTT(mqttData)
 }

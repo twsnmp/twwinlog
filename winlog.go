@@ -85,6 +85,13 @@ func startWinlog(ctx context.Context) {
 				Severity: 6,
 				Msg:      msg,
 			})
+			publishMQTT(&mqttStatsDataEnt{
+				Time:   time.Now().Format(time.RFC3339),
+				Total:  total,
+				Count:  count,
+				PS:     float64(count) / float64(syslogInterval),
+				Params: param,
+			})
 			sendReport(param)
 			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logoff=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
 				total, count, syslogCount, logonCount, logoffCount, logonFailedCount, processCount, taskCount, kerberosCount,
@@ -279,18 +286,35 @@ func sendEventID() {
 				return true
 			}
 			sv := 6
+			level := "INFO"
 			switch e.Level {
 			case 1:
 				sv = 2
+				level = "CRIT"
 			case 2:
 				sv = 3
+				level = "ERROR"
 			case 3:
 				sv = 4
+				level = "WARN"
 			}
+			msg := e.String()
 			sendSyslog(&syslogEnt{
 				Severity: sv,
 				Time:     time.Now(),
-				Msg:      e.String(),
+				Msg:      msg,
+			})
+			publishMQTT(&mqttEventIDDataEnt{
+				Time:      time.Now().Format(time.RFC3339),
+				Computer:  e.Computer,
+				Provider:  e.Provider,
+				Channel:   e.Channel,
+				EventID:   e.EventID,
+				Level:     level,
+				Total:     e.Total,
+				Count:     e.Count,
+				FirstTime: time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+				LastTime:  time.Unix(e.LastTime, 0).Format(time.RFC3339),
 			})
 			e.Count = 0
 		}
@@ -302,11 +326,18 @@ func sendClearLog(l string, t time.Time) {
 	subjectUserName := getEventData(reSubjectUserNameTag, l)
 	subjectDomainName := getEventData(reSubjectDomainNameTag, l)
 	subjectUserSid := getEventData(reSubjectUserSidTag, l)
+	msg := fmt.Sprintf("type=ClearLog,subject=%s@%s,sid=%s",
+		subjectUserName, subjectDomainName, subjectUserSid)
 	sendSyslog(&syslogEnt{
 		Severity: 2,
 		Time:     t,
-		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,sid=%s",
-			subjectUserName, subjectDomainName, subjectUserSid),
+		Msg:      msg,
+	})
+	publishMQTT(&mqttMessageDataEnt{
+		Time:    time.Now().Format(time.RFC3339),
+		Level:   "CRIT",
+		Type:    "ClearLog",
+		Message: msg,
 	})
 }
 

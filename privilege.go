@@ -68,6 +68,14 @@ func sendPrivilege() {
 				Time:     time.Now(),
 				Msg:      e.String(),
 			})
+			publishMQTT(&mqttPrivilegeDataEnt{
+				Time:      time.Now().Format(time.RFC3339),
+				Subject:   e.Subject,
+				Computer:  e.Computer,
+				Count:     e.Count,
+				FirstTime: time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+				LastTime:  time.Unix(e.LastTime, 0).Format(time.RFC3339),
+			})
 			privilegeMap.Delete(k)
 		}
 		return true

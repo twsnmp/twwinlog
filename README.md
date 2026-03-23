@@ -109,35 +109,48 @@ Usage of E:\twsnmpfc\twwinlog.exe:
   -cpuprofile file
         write cpu profile to file
   -interval int
+        syslog destination list (default "127.0.0.1:514")
+        -interval int
         syslog send interval(sec) (default 300)
-  -memprofile file
+        -memprofile file
         write memory profile to file
-  -password string
+        -mqtt string
+        mqtt broker destination
+        -mqttClientID string
+        mqtt client id (default "twwinlog")
+        -mqttPassword string
+        mqtt password
+        -mqttTopic string
+        mqtt topic (default "twwinlog")
+        -mqttUser string
+        mqtt user name
+        -password string
         remote user's password
-  -remote string
+        -remote string
         remote windows pc
-  -syslog string
-        syslog destnation list
-  -user string
+        -syslog string
+        syslog destination list
+        -user string
         remote user name
-```
 
 
-| Parameters | Contents |
-|---|---|
-| Syslog | Syslog destination |
-| Interval | Check interval |
-| Auth | Remote PC authentication method |
-| User/Password | User name password for authentication of remote PC |
-| Remoe | Report PC |
+        | Parameters | Contents |
+        |---|---|
+        | Syslog | Syslog destination |
+        | Mqtt | MQTT broker destination |
+        | Interval | Check interval |
+        | Auth | Remote PC authentication method |
+        | User/Password | User name password for authentication of remote PC |
+        | Remote | Remote PC |
 
-|パラメータ|内容|
-|---|---|
-|syslog|syslogの送信先|
-|interval|チェック間隔|
-|auth|リモートPCの認証方法|
-|user/password|リモートPCの認証時のユーザー名パスワード|
-|remoe|リポートPC|
+        |パラメータ|内容|
+        |---|---|
+        |syslog|syslogの送信先|
+        |mqtt|MQTTブローカーの送信先|
+        |interval|チェック間隔|
+        |auth|リモートPCの認証方法|
+        |user/password|リモートPCの認証時のユーザー名パスワード|
+        |remote|リモートPC|
 
 
 Syslog destinations can be specified multiple by separation of comma.

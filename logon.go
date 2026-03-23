@@ -38,36 +38,57 @@ func checkLogon(s *System, l string, t time.Time) {
 	switch s.EventID {
 	case 4625:
 		logonFailedCount++
+		msg := fmt.Sprintf("type=LogonFailed,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,failedCode=%s,time=%s",
+			subject, target, s.Computer, ipAddress, logonType, failedCode,
+			t.Format(time.RFC3339),
+		)
 		sendSyslog(&syslogEnt{
 			Severity: 3,
 			Time:     t,
-			Msg: fmt.Sprintf("type=LogonFailed,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,failedCode=%s,time=%s",
-				subject, target, s.Computer, ipAddress, logonType, failedCode,
-				t.Format(time.RFC3339),
-			),
+			Msg:      msg,
+		})
+		publishMQTT(&mqttMessageDataEnt{
+			Time:    t.Format(time.RFC3339),
+			Level:   "ERROR",
+			Type:    "LogonFailed",
+			Message: msg,
 		})
 	case 4647, 4634:
 		logoffCount++
+		msg := fmt.Sprintf("type=Logoff,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,time=%s",
+			subject, target, s.Computer, ipAddress, logonType,
+			t.Format(time.RFC3339),
+		)
 		sendSyslog(&syslogEnt{
 			Severity: 6,
 			Time:     t,
-			Msg: fmt.Sprintf("type=Logoff,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,time=%s",
-				subject, target, s.Computer, ipAddress, logonType,
-				t.Format(time.RFC3339),
-			),
+			Msg:      msg,
+		})
+		publishMQTT(&mqttMessageDataEnt{
+			Time:    t.Format(time.RFC3339),
+			Level:   "INFO",
+			Type:    "Logoff",
+			Message: msg,
 		})
 	case 4648:
 		logonType = "Explicit"
 		fallthrough
 	default:
 		logonCount++
+		msg := fmt.Sprintf("type=Logon,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,time=%s",
+			subject, target, s.Computer, ipAddress, logonType,
+			t.Format(time.RFC3339),
+		)
 		sendSyslog(&syslogEnt{
 			Severity: 6,
 			Time:     t,
-			Msg: fmt.Sprintf("type=Logon,subject=%s,target=%s,computer=%s,ip=%s,logonType=%s,time=%s",
-				subject, target, s.Computer, ipAddress, logonType,
-				t.Format(time.RFC3339),
-			),
+			Msg:      msg,
+		})
+		publishMQTT(&mqttMessageDataEnt{
+			Time:    t.Format(time.RFC3339),
+			Level:   "INFO",
+			Type:    "Logon",
+			Message: msg,
 		})
 	}
 }

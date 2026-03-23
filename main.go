@@ -17,6 +17,11 @@ import (
 var version = "v1.1.0"
 var commit = ""
 var syslogDst = ""
+var mqttDst = ""
+var mqttUser = ""
+var mqttPassword = ""
+var mqttClientID = "twwinlog"
+var mqttTopic = "twwinlog"
 var remote = ""
 var user = ""
 var auth = ""
@@ -28,6 +33,11 @@ var debug bool
 
 func init() {
 	flag.StringVar(&syslogDst, "syslog", "", "syslog destnation list")
+	flag.StringVar(&mqttDst, "mqtt", "", "mqtt broker destnation")
+	flag.StringVar(&mqttUser, "mqttUser", "", "mqtt user name")
+	flag.StringVar(&mqttPassword, "mqttPassword", "", "mqtt password")
+	flag.StringVar(&mqttClientID, "mqttClientID", "twwinlog", "mqtt client id")
+	flag.StringVar(&mqttTopic, "mqttTopic", "twwinlog", "mqtt topic")
 	flag.StringVar(&remote, "remote", "", "remote windows pc")
 	flag.StringVar(&user, "user", "", "remote user name")
 	flag.StringVar(&auth, "auth", "", "remote authentication:Default|Negotiate|Kerberos|NTLM")
@@ -77,22 +87,29 @@ func main() {
 		}
 	}
 	log.Printf("version=%s", fmt.Sprintf("%s(%s)", version, commit))
-	if syslogDst == "" {
-		log.Fatalln("no syslog distenation")
+	if syslogDst == "" && mqttDst == "" {
+		log.Fatalln("no syslog or mqtt destination")
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
 	go startSyslog(ctx)
+	go startMQTT(ctx)
 	go startWinlog(ctx)
 	<-quit
+	msg := "quit by signal"
+	log.Println(msg)
 	sendSyslog(&syslogEnt{
 		Time:     time.Now(),
 		Severity: 6,
-		Msg:      "quit by signal",
+		Msg:      msg,
 	})
-	time.Sleep(time.Second * 1)
-	log.Println("quit by signal")
+	publishMQTT(&mqttMessageDataEnt{
+		Time:    time.Now().Format(time.RFC3339),
+		Level:   "INFO",
+		Type:    "System",
+		Message: msg,
+	})
 	cancel()
 	time.Sleep(time.Second * 2)
 }

@@ -34,6 +34,12 @@ func startSyslog(ctx context.Context) {
 			Severity: 6,
 			Msg:      fmt.Sprintf("start send syslog to %s", d),
 		})
+		publishMQTT(&mqttMessageDataEnt{
+			Time:    time.Now().Format(time.RFC3339),
+			Level:   "INFO",
+			Type:    "System",
+			Message: fmt.Sprintf("start send syslog to %s", d),
+		})
 		dst = append(dst, s)
 	}
 	host, err := os.Hostname()

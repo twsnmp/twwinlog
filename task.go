@@ -74,6 +74,16 @@ func sendTask() {
 				Time:     time.Now(),
 				Msg:      e.String(),
 			})
+			publishMQTT(&mqttTaskDataEnt{
+				Time:      time.Now().Format(time.RFC3339),
+				Subject:   e.Subject,
+				Computer:  e.Computer,
+				TaskName:  e.TaskName,
+				Count:     e.Count,
+				FirstTime: time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+				LastTime:  time.Unix(e.LastTime, 0).Format(time.RFC3339),
+				SendTime:  e.SendTime,
+			})
 			taskMap.Delete(k)
 		}
 		return true

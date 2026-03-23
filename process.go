@@ -117,6 +117,20 @@ func sendProcess() {
 				Time:     time.Now(),
 				Msg:      e.String(),
 			})
+			publishMQTT(&mqttProcessDataEnt{
+				Time:        time.Now().Format(time.RFC3339),
+				Computer:    e.Computer,
+				Process:     e.Process,
+				Count:       e.Count,
+				StartCount:  e.StartCount,
+				ExitCount:   e.ExitCount,
+				LastSubject: e.LastSubject,
+				LastStatus:  e.LastStatus,
+				LastParent:  e.LastParent,
+				FirstTime:   time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+				LastTime:    time.Unix(e.LastTime, 0).Format(time.RFC3339),
+				SendTime:    e.SendTime,
+			})
 			processMap.Delete(k)
 		}
 		return true

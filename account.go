@@ -88,6 +88,18 @@ func sendAccount() {
 				Time:     time.Now(),
 				Msg:      e.String(),
 			})
+			publishMQTT(&mqttAccountDataEnt{
+				Time:      time.Now().Format(time.RFC3339),
+				Target:    e.Target,
+				Subject:   e.Subject,
+				Computer:  e.Computer,
+				Count:     e.Count,
+				Edit:      e.Edit,
+				Other:     e.Other,
+				Password:  e.Password,
+				FirstTime: time.Unix(e.FirstTime, 0).Format(time.RFC3339),
+				LastTime:  time.Unix(e.LastTime, 0).Format(time.RFC3339),
+			})
 			AccountMap.Delete(k)
 		}
 		return true

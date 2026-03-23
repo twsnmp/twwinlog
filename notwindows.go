@@ -5,5 +5,6 @@ package main
 import "context"
 
 // startWinlog : start monitor windows event log
-func startWinlog(ctx context.Context) {
+func startWinlog(_ context.Context) {
+	sendMonitor("dumy")
 }

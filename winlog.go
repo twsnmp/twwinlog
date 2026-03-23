@@ -90,6 +90,7 @@ func startWinlog(ctx context.Context) {
 				total, count, syslogCount, logonCount, logoffCount, logonFailedCount, processCount, taskCount, kerberosCount,
 				privilegeCount, accountCount)
 			syslogCount = 0
+			sendMonitor(param)
 		case <-ctx.Done():
 			log.Println("stop winlog")
 			return

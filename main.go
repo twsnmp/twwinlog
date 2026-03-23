@@ -86,11 +86,11 @@ func main() {
 	go startSyslog(ctx)
 	go startWinlog(ctx)
 	<-quit
-	syslogCh <- &syslogEnt{
+	sendSyslog(&syslogEnt{
 		Time:     time.Now(),
 		Severity: 6,
 		Msg:      "quit by signal",
-	}
+	})
 	time.Sleep(time.Second * 1)
 	log.Println("quit by signal")
 	cancel()

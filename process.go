@@ -112,11 +112,11 @@ func sendProcess() {
 	processMap.Range(func(k, v interface{}) bool {
 		if e, ok := v.(*processEnt); ok {
 			processCount++
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: 6,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			processMap.Delete(k)
 		}
 		return true

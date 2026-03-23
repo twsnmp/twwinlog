@@ -83,11 +83,11 @@ func sendAccount() {
 				log.Printf("account id=%s,e=%v", k, e)
 			}
 			accountCount++
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: 6,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			AccountMap.Delete(k)
 		}
 		return true

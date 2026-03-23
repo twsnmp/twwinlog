@@ -63,11 +63,11 @@ func sendPrivilege() {
 				log.Printf("privilege id=%s,e=%v", k, e)
 			}
 			privilegeCount++
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: 6,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			privilegeMap.Delete(k)
 		}
 		return true

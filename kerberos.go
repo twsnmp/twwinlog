@@ -84,14 +84,14 @@ func updateKerberos(s *System, l string, t time.Time) {
 	target := fmt.Sprintf("%s@%s", targetUserName, targetDomainName)
 	id := fmt.Sprintf("%s:%s:%s:%s:%s", target, s.Computer, ipAddress, serviceName, ticketType)
 	if status != "" {
-		syslogCh <- &syslogEnt{
+		sendSyslog(&syslogEnt{
 			Severity: 4,
 			Time:     t,
 			Msg: fmt.Sprintf("type=KerberosFailed,target=%s,computer=%s,ip=%s,service=%s,ticketType=%s,status=%s,time=%s",
 				target, s.Computer, ipAddress, serviceName, ticketType, status,
 				t.Format(time.RFC3339),
 			),
-		}
+		})
 	}
 	if v, ok := kerberosMap.Load(id); ok {
 		if e, ok := v.(*kerberosEnt); ok {
@@ -132,11 +132,11 @@ func sendKerberos() {
 				log.Printf("kerberosTGT id=%s,e=%v", k, e)
 			}
 			kerberosCount++
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: 6,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			kerberosMap.Delete(k)
 		}
 		return true

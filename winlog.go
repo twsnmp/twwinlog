@@ -80,11 +80,11 @@ func startWinlog(ctx context.Context) {
 			total += count
 			msg := fmt.Sprintf("type=Stats,total=%d,count=%d,ps=%.2f,send=%d,param=%s",
 				total, count, float64(count)/float64(syslogInterval), syslogCount, param)
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Time:     time.Now(),
 				Severity: 6,
 				Msg:      msg,
-			}
+			})
 			sendReport(param)
 			log.Printf("total=%d,count=%d,syslog=%d,logon=%d,logoff=%d,logonFailed=%d,process=%d,task=%d,kerberos=%d,privilege=%d,account=%d",
 				total, count, syslogCount, logonCount, logoffCount, logonFailedCount, processCount, taskCount, kerberosCount,
@@ -287,11 +287,11 @@ func sendEventID() {
 			case 3:
 				sv = 4
 			}
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: sv,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			e.Count = 0
 		}
 		return true
@@ -302,12 +302,12 @@ func sendClearLog(l string, t time.Time) {
 	subjectUserName := getEventData(reSubjectUserNameTag, l)
 	subjectDomainName := getEventData(reSubjectDomainNameTag, l)
 	subjectUserSid := getEventData(reSubjectUserSidTag, l)
-	syslogCh <- &syslogEnt{
+	sendSyslog(&syslogEnt{
 		Severity: 2,
 		Time:     t,
 		Msg: fmt.Sprintf("type=ClearLog,subject=%s@%s,sid=%s",
 			subjectUserName, subjectDomainName, subjectUserSid),
-	}
+	})
 }
 
 // getLastTime from registry

@@ -69,11 +69,11 @@ func sendTask() {
 				log.Printf("task id=%s,e=%v", k, e)
 			}
 			taskCount++
-			syslogCh <- &syslogEnt{
+			sendSyslog(&syslogEnt{
 				Severity: 6,
 				Time:     time.Now(),
 				Msg:      e.String(),
-			}
+			})
 			taskMap.Delete(k)
 		}
 		return true

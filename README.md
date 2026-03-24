@@ -42,6 +42,11 @@ You can get the following information in the current version:
 The trial version V1.0.0 has been released.(2021/8/8)
 Log transmission improvement version V1.1.0 has been released.(2021/8/21)
 V1.1.2 has been released.(2025/1/26)
+V2.0.0 has been released.(2026/3/25)
+  - Added MQTT data transmission support and structured event logging.
+  - Modified Syslog transmission to be non-blocking for better robustness.
+  - Enhanced documentation with an infographic and English/Japanese separation.
+  - Enabled GitHub Pages integration.
 
 ## Build
 

@@ -8,23 +8,34 @@ English | [日本語](./README_ja.md)
 
 ![twwinlog](./images/twwinlog.png)
 
-## Overview
+## About twwinlog
 
-A sensor program for sending Windows event logs to TWSNMP FC by syslog.
-You can get the following information in the current version.
+twwinlog is a lightweight and efficient Windows Event Log collector and forwarder written in Go. It is designed to monitor Windows system, security, and application logs in real-time and forward them to external syslog servers or TWSNMP FC.
 
--Trimed the number of events
--The aggregation by event ID
--Progion information (4624, 4625, 4648, 4634, 4647)
--Information about changing accounts
-(4720,4722,4723,4724,4726,4738,4740,4767,4781)
--Procompate access information (4672,4673)
--Prot information about Kerberos authentication (4768,4769)
--Information about the schedule task (4698)
--Information about the process start and stop (4688, 4689)
--Notification of logon failure (4625)
--Kerberos Notification of Ticket Requests Failure (4768,4769)
--Proll notification of event log erasing (1102)
+Unlike heavy agents, twwinlog focuses on simplicity and performance, making it ideal for both small-scale monitoring and enterprise environments where low resource overhead is critical.
+
+### Key Features
+- 🚀 High Performance: Built with Go for minimal CPU and memory footprint.
+- 🔍 Powerful Filtering: Support for regular expression-based filtering to send only the logs you actually need.
+- 📡 Flexible Forwarding: Supports standard Syslog (UDP/TCP) and optimized integration with TWSNMP FC.
+- 🛠 Easy Deployment: Single binary execution with a simple YAML configuration.
+- 🛡 Secure & Reliable: Stable event tracking using Windows Event Log API.
+
+### Collectible Information
+
+You can get the following information in the current version:
+
+- Aggregation of the number of events
+- Aggregation by event ID
+- Logon information (4624, 4625, 4648, 4634, 4647)
+- Account change information (4720, 4722, 4723, 4724, 4726, 4738, 4740, 4767, 4781)
+- Privileged access information (4672, 4673)
+- Kerberos authentication information (4768, 4769)
+- Scheduled task information (4698)
+- Process start and stop information (4688, 4689)
+- Logon failure notifications (4625)
+- Kerberos ticket request failure notifications (4768, 4769)
+- Event log clearing notifications (1102)
 
 ## Status
 

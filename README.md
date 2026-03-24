@@ -6,6 +6,8 @@ English | [日本語](./README_ja.md)
 [![Godoc Reference](https://godoc.org/github.com/twsnmp/twwinlog?status.svg)](http://godoc.org/github.com/twsnmp/twwinlog)
 [![Go Report Card](https://goreportcard.com/badge/twsnmp/twwinlog)](https://goreportcard.com/report/twsnmp/twwinlog)
 
+![twwinlog](./images/twwinlog.png)
+
 ## Overview
 
 A sensor program for sending Windows event logs to TWSNMP FC by syslog.
@@ -62,34 +64,34 @@ Is executed.The zip file is created in the `dist/` directory.
 ### Usage
 
 ```
-Usage of E:\twsnmpfc\twwinlog.exe:
+Usage of twwinlog.exe:
   -auth string
         remote authentication:Default|Negotiate|Kerberos|NTLM
   -cpuprofile file
         write cpu profile to file
+  -debug
+        Debug Mode
   -interval int
-        syslog destination list (default "127.0.0.1:514")
-        -interval int
         syslog send interval(sec) (default 300)
-        -memprofile file
+  -memprofile file
         write memory profile to file
-        -mqtt string
+  -mqtt string
         mqtt broker destination
-        -mqttClientID string
+  -mqttClientID string
         mqtt client id (default "twwinlog")
-        -mqttPassword string
+  -mqttPassword string
         mqtt password
-        -mqttTopic string
+  -mqttTopic string
         mqtt topic (default "twwinlog")
-        -mqttUser string
+  -mqttUser string
         mqtt user name
-        -password string
+  -password string
         remote user's password
-        -remote string
+  -remote string
         remote windows pc
-        -syslog string
+  -syslog string
         syslog destination list
-        -user string
+  -user string
         remote user name
 ```
 
@@ -97,10 +99,14 @@ Usage of E:\twsnmpfc\twwinlog.exe:
 |---|---|
 | Syslog | Syslog destination |
 | Mqtt | MQTT broker destination |
-| Interval | Check interval |
+| MqttClientID | MQTT client id |
+| MqttUser/Password| MQTT user name and password |
+| MqttTopic | MQTT topic |
+| Interval | Check interval (sec) |
 | Auth | Remote PC authentication method |
-| User/Password | User name password for authentication of remote PC |
+| User/Password | User name and password for authentication of remote PC |
 | Remote | Remote PC |
+| Debug | Debug Mode |
 
 Syslog destinations can be specified multiple by separation of comma.
 : You can also specify the port number.
@@ -111,18 +117,24 @@ Syslog destinations can be specified multiple by separation of comma.
 
 ### Start method
 
-To start, you need a Syslog destination (-syslog).
+To start, you need to specify a Syslog destination(-syslog) or MQTT broker(-mqtt).
 
-You can start with the following command.
+You can send to syslog with the following command.
 
 ```
 >twwinlog.exe  -syslog 192.168.1.1
 ```
 
+To send to MQTT broker, start with the following command.
+
+```
+>twwinlog.exe -mqtt 192.168.1.1
+```
+
 To monitor remote PC event log
 
 ```
->twwinlog.exe  -syslog 192.168.1.1 -remote <PCのアドレス> -user <User> -password <Password>
+>twwinlog.exe  -syslog 192.168.1.1 -remote <PC Address> -user <User> -password <Password>
 ```
 
 ## syslog message examle
@@ -149,5 +161,5 @@ Please see
 see ./LICENSE
 
 ```
-Copyright 2021-2025 Masayuki Yamai
+Copyright 2021-2026 Masayuki Yamai
 ```

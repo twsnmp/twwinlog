@@ -32,8 +32,8 @@ var memprofile string
 var debug bool
 
 func init() {
-	flag.StringVar(&syslogDst, "syslog", "", "syslog destnation list")
-	flag.StringVar(&mqttDst, "mqtt", "", "mqtt broker destnation")
+	flag.StringVar(&syslogDst, "syslog", "", "syslog destination list")
+	flag.StringVar(&mqttDst, "mqtt", "", "mqtt broker destination")
 	flag.StringVar(&mqttUser, "mqttUser", "", "mqtt user name")
 	flag.StringVar(&mqttPassword, "mqttPassword", "", "mqtt password")
 	flag.StringVar(&mqttClientID, "mqttClientID", "twwinlog", "mqtt client id")

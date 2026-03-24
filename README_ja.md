@@ -6,6 +6,8 @@ TWSNMP FCのためのWindowsイベントログセンサー
 [![Godoc Reference](https://godoc.org/github.com/twsnmp/twwinlog?status.svg)](http://godoc.org/github.com/twsnmp/twwinlog)
 [![Go Report Card](https://goreportcard.com/badge/twsnmp/twwinlog)](https://goreportcard.com/report/twsnmp/twwinlog)
 
+![twwinlog](./images/twwinlog.png)
+
 ## 概要
 
 WindowsのイベントログをTWSNMP FCにsyslogで送信するためのセンサープログラムです。  
@@ -62,34 +64,34 @@ $make zip
 ### 使用方法
 
 ```
-Usage of E:\twsnmpfc\twwinlog.exe:
+Usage of twwinlog.exe:
   -auth string
         remote authentication:Default|Negotiate|Kerberos|NTLM
   -cpuprofile file
         write cpu profile to file
+  -debug
+        Debug Mode
   -interval int
-        syslog destination list (default "127.0.0.1:514")
-        -interval int
         syslog send interval(sec) (default 300)
-        -memprofile file
+  -memprofile file
         write memory profile to file
-        -mqtt string
+  -mqtt string
         mqtt broker destination
-        -mqttClientID string
+  -mqttClientID string
         mqtt client id (default "twwinlog")
-        -mqttPassword string
+  -mqttPassword string
         mqtt password
-        -mqttTopic string
+  -mqttTopic string
         mqtt topic (default "twwinlog")
-        -mqttUser string
+  -mqttUser string
         mqtt user name
-        -password string
+  -password string
         remote user's password
-        -remote string
+  -remote string
         remote windows pc
-        -syslog string
+  -syslog string
         syslog destination list
-        -user string
+  -user string
         remote user name
 ```
 
@@ -97,10 +99,14 @@ Usage of E:\twsnmpfc\twwinlog.exe:
 |---|---|
 |syslog|syslogの送信先|
 |mqtt|MQTTブローカーの送信先|
-|interval|チェック間隔|
+|mqttClientID|MQTTクライアントID|
+|mqttUser/mqttPassword|MQTTのユーザー名パスワード|
+|mqttTopic|MQTTのトピック|
+|interval|チェック間隔(秒)|
 |auth|リモートPCの認証方法|
 |user/password|リモートPCの認証時のユーザー名パスワード|
 |remote|リモートPC|
+|debug|デバッグモード|
 
 syslogの送信先はカンマ区切りで複数指定できます。
 :に続けてポート番号を指定することもできます。
@@ -111,12 +117,18 @@ syslogの送信先はカンマ区切りで複数指定できます。
 
 ### 起動方法
 
-起動するためにはsyslogの送信先(-syslog)が必要です。
+起動するためにはsyslogの送信先(-syslog)またはMQTTブローカー(-mqtt)の指定が必要です。
 
-以下のコマンドで起動できます。
+以下のコマンドでsyslogへ送信できます。
 
 ```
 >twwinlog.exe  -syslog 192.168.1.1
+```
+
+MQTTブローカーへ送信する場合は、以下のコマンドで起動します。
+
+```
+>twwinlog.exe -mqtt 192.168.1.1
 ```
 
 別のPCのイベントログをモニタするためには、
@@ -149,5 +161,5 @@ https://note.com/twsnmp/n/nc6e49c284afb
 ./LICENSE を参照してください。
 
 ```
-Copyright 2021-2025 Masayuki Yamai
+Copyright 2021-2026 Masayuki Yamai
 ```
